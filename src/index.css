@@ -1,0 +1,14 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+#root-div {}
+
+#option-div {}
+
+#demo-frame {
+    height: 800px;
+    width: 1050px;
+}
