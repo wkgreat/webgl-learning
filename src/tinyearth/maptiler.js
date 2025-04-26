@@ -6,10 +6,10 @@ const XLIMIT = [-20037508.3427892, 20037508.3427892];
 const YLIMIT = [-20037508.3427892, 20037508.3427892];
 
 /**
- * @class TileProvider
+ * @class TileSource
  * @property {string} url
 */
-export class TileProvider {
+export class TileSource {
     url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 
     constructor(url) {
@@ -97,6 +97,8 @@ export class Tile {
 
 //
 export class TileMesher {
+
+    static toMesh(tile, level, targetProj, frustum) {}
 
     static toMesh(tile, level, targetProj) {
         const vertices = [];

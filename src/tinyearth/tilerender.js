@@ -84,16 +84,15 @@ export function setTileProgramTextureData(gl, bufferInfo, image) {
  * @param {WebGL2RenderingContext} gl
  * @param {object} programInfo
  * @param {object} bufferInfo
- * @param {Tile} tile
+ * @param {object} mesh
  * @param {mat4} modelMtx
  * @param {Camera} camera
  * @param {mat4} projMtx       
 */
-export function drawTile(gl, programInfo, bufferInfo, tile, modelMtx, camera, projMtx) {
+export function drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera, projMtx) {
 
     gl.useProgram(programInfo.program);
 
-    const mesh = TileMesher.toMesh(tile, 4, EPSG_4978);
     setTileProgramBufferData(gl, bufferInfo, mesh.vertices);
     setTileProgramTextureData(gl, bufferInfo, mesh.texImage);
 
@@ -111,4 +110,14 @@ export function drawTile(gl, programInfo, bufferInfo, tile, modelMtx, camera, pr
     gl.uniformMatrix4fv(programInfo.u_projMtx, false, projMtx);
 
     gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.numElements);
+}
+
+class TileProvider {
+    height = 0;
+    source = null;
+
+    getFrameTiles() {
+        return null;
+    }
+
 }

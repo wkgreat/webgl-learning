@@ -1,11 +1,11 @@
 import "./tinyearth.css"
-import { Tile, TileMesher, TileProvider } from "./maptiler";
-import { createTileProgram, createTileProgramBuffer, drawTile, setTileProgramBufferData, setTileProgramTextureData } from "./tilerender";
-import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj";
+import { TileMesher, TileSource } from "./maptiler";
+import { createTileProgram, createTileProgramBuffer, drawTileMesh } from "./tilerender";
+import { EPSG_4326, EPSG_4978 } from "./proj";
 import { mat4 } from "gl-matrix";
 import Camera, { CameraMouseControl } from "./camera";
 import proj4 from "proj4";
-import { Mutex } from "async-mutex";
+import Projection from "./projection";
 
 const width = 1000;
 const height = 500;
@@ -45,7 +45,7 @@ async function draw(gl, canvas) {
     const bufferInfo = createTileProgramBuffer(gl);
     const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
     // const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-    const tileProvider = new TileProvider(url);
+    const tileSource = new TileSource(url);
 
     const modelMtx = mat4.create();
     const cameraFrom = proj4(EPSG_4326, EPSG_4978, [117, 32, 1E7]);
@@ -55,25 +55,27 @@ async function draw(gl, canvas) {
     const control = new CameraMouseControl(camera, canvas);
     control.enable();
 
-    const projMtx = mat4.create();
-    mat4.perspective(projMtx, Math.PI / 3, width / height, 0.1, 1E10);
+    const projection = new Projection(Math.PI / 3, width / height, 0.1, 1E10);
+
+    console.log(projection.getViewFrustum());
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const tiles = [];
+    const meshes = [];
 
-    tileProvider.fetchTilesOfLevelAsync(2, (tile) => {
-        tiles.push(tile);
+    tileSource.fetchTilesOfLevelAsync(3, (tile) => {
+        meshes.push(TileMesher.toMesh(tile, 4, EPSG_4978));
     });
 
     function dynamicDraw() {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        for (let tile of tiles) {
-            drawTile(gl, programInfo, bufferInfo, tile, modelMtx, camera, projMtx);
+        const projMtx = projection.perspective();
+        for (let mesh of meshes) {
+            drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera, projMtx);
         }
         requestAnimationFrame(dynamicDraw);
     }

@@ -99,7 +99,7 @@ function draw(gl) {
         gl.drawArrays(mode, first, count);
         https://juejin.cn/post/6992934014411620365
     */
-    gl.drawArrays(gl.TRIANGLES, 0, 4); // 从第0个顶点开始，绘制4个顶点
+    gl.drawArrays(gl.TRIANGLES, 0, 3); // 从第0个顶点开始，绘制3个顶点
 
 
 }
