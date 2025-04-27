@@ -3,7 +3,7 @@ import "./demo12.css"
 import Camera, { CameraMouseControl } from "../common/camera";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createRectangle, createSphere, drawMesh } from "../common/webglutils";
+import { createChessBoardTexture, createRectangle, createSphere, drawMesh, meshBindBuffer } from "../common/webglutils";
 
 const width = 1000;
 const height = 500;
@@ -67,6 +67,9 @@ function createProgram(gl, vertSource, fragSource) {
         u_modelMtx: gl.getUniformLocation(program, 'u_modelMtx'),
         u_viewMtx: gl.getUniformLocation(program, 'u_viewMtx'),
         u_projMtx: gl.getUniformLocation(program, 'u_projMtx'),
+        u_texture: gl.getUniformLocation(program, 'u_texture'),
+        u_texture0: gl.getUniformLocation(program, 'u_texture0'),
+        u_texture1: gl.getUniformLocation(program, 'u_texture1')
     };
 
 }
@@ -87,11 +90,17 @@ async function draw(gl, canvas) {
     const plane = createRectangle(gl, [-20, -20, 0], [20, 20, 0]);
 
     //buffer
-    const bufferInfo = {
+    meshBindBuffer(gl, sphere, {
         positionBuffer: gl.createBuffer(),
         normalBuffer: gl.createBuffer(),
         texcoordBuffer: gl.createBuffer()
-    };
+    });
+
+    meshBindBuffer(gl, plane, {
+        positionBuffer: gl.createBuffer(),
+        normalBuffer: gl.createBuffer(),
+        texcoordBuffer: gl.createBuffer()
+    });
 
     //uniform
     const modelMtx = mat4.create();
@@ -101,25 +110,29 @@ async function draw(gl, canvas) {
     const projMtx = mat4.create();
     mat4.perspective(projMtx, Math.PI / 3, width / height, 0.5, 1000);
 
-    //texture
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
+    //第一个纹理
+    const textureInfo1 = createChessBoardTexture(gl, 10, 10, 100, 200);
+    gl.activeTexture(gl.TEXTURE0); //纹理单元0
+    const texture1 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture1);
+    gl.texImage2D(gl.TEXTURE_2D, 0, textureInfo1.internalFormat, textureInfo1.width, textureInfo1.height,
+        0, textureInfo1.format, textureInfo1.type, textureInfo1.data);
+    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture0"), 0); // 设置u_texture0为纹理单元 0
 
-    const textureInfo = createChessBoardTexture(gl, 10, 10, 100, 200);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-    // 上传纹理数据
-    gl.texImage2D(
-        gl.TEXTURE_2D,       // target
-        0,                   // level
-        textureInfo.internalFormat,        // internalFormat (WebGL1用LUMINANCE)
-        textureInfo.width, textureInfo.height,       // width and height
-        0,                   // border (必须是0)
-        textureInfo.format,        // format (也是LUMINANCE)
-        textureInfo.type,    // type
-        textureInfo.data             // data
-    );
+    //第二个纹理
+    const textureInfo2 = createChessBoardTexture(gl, 40, 40, 180, 200);
+    gl.activeTexture(gl.TEXTURE1); //纹理单元1
+    const texture2 = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture2);
+    gl.texImage2D(gl.TEXTURE_2D, 0, textureInfo2.internalFormat, textureInfo2.width, textureInfo2.height,
+        0, textureInfo2.format, textureInfo2.type, textureInfo2.data);
+    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture1"), 1); // 设置u_texture1为纹理单元 1
 
-    //设置纹理参数
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -135,8 +148,10 @@ async function draw(gl, canvas) {
         gl.uniformMatrix4fv(programInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
         gl.uniformMatrix4fv(programInfo.u_projMtx, false, projMtx);
 
-        drawMesh(gl, programInfo, bufferInfo, plane);
-        drawMesh(gl, programInfo, bufferInfo, sphere);
+        gl.uniform1i(programInfo.u_texture, 1); //使用第1个纹理
+        drawMesh(gl, programInfo, plane);
+        gl.uniform1i(programInfo.u_texture, 0); //使用第2个纹理
+        drawMesh(gl, programInfo, sphere);
 
         requestAnimationFrame(dynamicDraw);
     }

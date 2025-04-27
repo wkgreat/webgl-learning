@@ -52,6 +52,10 @@ class Camera {
         mat4.invert(this.invViewMtx, this.viewMtx);
     }
 
+    getFrom() {
+        return this.from;
+    }
+
     getMatrix() {
         this._look();
         return {

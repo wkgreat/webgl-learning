@@ -1,30 +1,53 @@
 import { vec3 } from "gl-matrix";
 
+export function meshBindBuffer(gl, mesh, bufferInfo) {
+    mesh.bufferInfo = bufferInfo;
+    const positionBuffer = bufferInfo.positionBuffer;
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
+
+    const normalBuffer = bufferInfo.normalBuffer;
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
+
+    const texcoordBuffer = bufferInfo.texcoordBuffer;
+    gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, mesh.texcoords, gl.STATIC_DRAW);
+}
+
 /**
  * @param {WebGLRenderingContext} gl
  * @param {object} programInfo
  * @param {object} bufferInfo 
  * @param {object} mesh   
 */
-export function drawMesh(gl, programInfo, bufferInfo, mesh) {
+export function drawMesh(gl, programInfo, mesh) {
 
-    const positionBuffer = bufferInfo.positionBuffer;
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(programInfo.a_position, mesh.verticeSize, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(programInfo.a_position);
+    if (programInfo.a_position >= 0) {
+        const positionBuffer = mesh.bufferInfo.positionBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        // gl.bufferData(gl.ARRAY_BUFFER, mesh.vertices, gl.STATIC_DRAW);
+        gl.vertexAttribPointer(programInfo.a_position, mesh.verticeSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(programInfo.a_position);
+    }
 
-    const normalBuffer = bufferInfo.normalBuffer;
-    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(programInfo.a_normal, 3, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(programInfo.a_normal);
+    if (programInfo.a_normal >= 0) {
+        const normalBuffer = mesh.bufferInfo.normalBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+        // gl.bufferData(gl.ARRAY_BUFFER, mesh.normals, gl.STATIC_DRAW);
+        gl.vertexAttribPointer(programInfo.a_normal, 3, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(programInfo.a_normal);
+    }
 
-    const texcoordBuffer = bufferInfo.texcoordBuffer;
-    gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, mesh.texcoords, gl.STATIC_DRAW);
-    gl.vertexAttribPointer(programInfo.a_texcoord, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(programInfo.a_texcoord);
+    if (programInfo.a_texcoord >= 0) {
+        const texcoordBuffer = mesh.bufferInfo.texcoordBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+        // gl.bufferData(gl.ARRAY_BUFFER, mesh.texcoords, gl.STATIC_DRAW);
+        gl.vertexAttribPointer(programInfo.a_texcoord, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(programInfo.a_texcoord);
+    }
+
+
 
     gl.drawArrays(gl.TRIANGLES, 0, mesh.nvertices);
 
@@ -158,28 +181,33 @@ export function createSphere(gl, radius = 1, xseg = 10, yseg = 10, center = [0, 
             const p2 = pointTranslate(pointOnSphere(radius, a1, Math.PI / 2 - b1), center[0], center[1], center[2]);
             const p3 = pointTranslate(pointOnSphere(radius, a0, Math.PI / 2 - b1), center[0], center[1], center[2]);
 
+            const nv0 = vec3.subtract(vec3.create(), vec3.fromValues(...p0), vec3.fromValues(...center));
+            const nv1 = vec3.subtract(vec3.create(), vec3.fromValues(...p1), vec3.fromValues(...center));
+            const nv2 = vec3.subtract(vec3.create(), vec3.fromValues(...p2), vec3.fromValues(...center));
+            const nv3 = vec3.subtract(vec3.create(), vec3.fromValues(...p3), vec3.fromValues(...center));
+
             vertices.push(...p0);
-            normals.push(...p0);
+            normals.push(...nv0);
             texcoords.push((a0 + Math.PI) / (2 * Math.PI), (b0 + Math.PI / 2) / Math.PI);
 
             vertices.push(...p2);
-            normals.push(...p2);
+            normals.push(...nv2);
             texcoords.push((a1 + Math.PI) / (2 * Math.PI), (b1 + Math.PI / 2) / Math.PI);
 
             vertices.push(...p3);
-            normals.push(...p3);
+            normals.push(...nv3);
             texcoords.push((a0 + Math.PI) / (2 * Math.PI), (b1 + Math.PI / 2) / Math.PI);
 
             vertices.push(...p0);
-            normals.push(...p0);
+            normals.push(...nv0);
             texcoords.push((a0 + Math.PI) / (2 * Math.PI), (b0 + Math.PI / 2) / Math.PI);
 
             vertices.push(...p1);
-            normals.push(...p1);
+            normals.push(...nv1);
             texcoords.push((a1 + Math.PI) / (2 * Math.PI), (b0 + Math.PI / 2) / Math.PI);
 
             vertices.push(...p2);
-            normals.push(...p2);
+            normals.push(...nv2);
             texcoords.push((a1 + Math.PI) / (2 * Math.PI), (b1 + Math.PI / 2) / Math.PI);
         }
     }

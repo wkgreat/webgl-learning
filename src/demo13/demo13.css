@@ -1,0 +1,27 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+#demo13-canvas {
+    height: 500px;
+    width: 1000px;
+}
+
+#helper {
+    position: fixed;
+    left: 0px;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 1px;
+    text-align: left;
+}

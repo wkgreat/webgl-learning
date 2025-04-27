@@ -3,7 +3,7 @@ import "./demo11.css"
 import Camera, { CameraMouseControl } from "../common/camera";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createRectangle, drawMesh } from "../common/webglutils";
+import { createChessBoardTexture, createRectangle, drawMesh, meshBindBuffer } from "../common/webglutils";
 
 const width = 1000;
 const height = 500;
@@ -85,11 +85,17 @@ async function draw(gl, canvas) {
     //attribute
     const rectangle = createRectangle(gl);
 
-    const bufferInfo = {
+    // const bufferInfo = {
+    //     positionBuffer: gl.createBuffer(),
+    //     normalBuffer: gl.createBuffer(),
+    //     texcoordBuffer: gl.createBuffer()
+    // };
+
+    meshBindBuffer(gl, rectangle, {
         positionBuffer: gl.createBuffer(),
         normalBuffer: gl.createBuffer(),
         texcoordBuffer: gl.createBuffer()
-    };
+    });
 
 
     //uniform
@@ -134,7 +140,7 @@ async function draw(gl, canvas) {
         gl.uniformMatrix4fv(programInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
         gl.uniformMatrix4fv(programInfo.u_projMtx, false, projMtx);
 
-        drawMesh(gl, programInfo, bufferInfo, rectangle);
+        drawMesh(gl, programInfo, rectangle);
 
         requestAnimationFrame(dynamicDraw);
     }
