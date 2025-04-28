@@ -3,7 +3,7 @@ import "./demo12.css"
 import Camera, { CameraMouseControl } from "../common/camera";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createCone, createConeAtOrigin, createRectangle, createSphere, drawMesh, meshBindBuffer } from "../common/webglutils";
+import { createChessBoardTexture, createCone, createConeAtOrigin, createLineMesh, createLineProgram, createRectangle, createSphere, drawLine, drawMesh, lineBindBuffer, meshBindBuffer } from "../common/webglutils";
 
 const width = 1000;
 const height = 500;
@@ -82,19 +82,23 @@ async function draw(gl, canvas) {
 
     glConfig(gl);
 
+    // mesh
     const programInfo = createProgram(gl, vertSource, fragSource);
-    gl.useProgram(programInfo.program);
-
-    //mesh
     const sphere = createSphere(gl, 1, 100, 100, [5, 5, 5]); // sphere
     const plane = createRectangle(gl, [-20, -20, 0], [20, 20, 0]); // rectangle
     const cone = createCone(gl, [-5, 5, 8], [-5, 5, 2], 3, 10, 10); //cone
-    //axis
-
-    //buffer
     meshBindBuffer(gl, sphere);
     meshBindBuffer(gl, plane);
     meshBindBuffer(gl, cone);
+
+    // axis
+    const lineProgramInfo = createLineProgram(gl);
+    const xline = createLineMesh(gl, [-20, 0, 0, 20, 0, 0], [1.0, 0.0, 0.0, 1.0]);
+    const yline = createLineMesh(gl, [0, -20, 0, 0, 20, 0], [0.0, 1.0, 0.0, 1.0]);
+    const zline = createLineMesh(gl, [0, 0, -20, 0, 0, 20], [0.0, 0.0, 1.0, 1.0]);
+    lineBindBuffer(gl, xline);
+    lineBindBuffer(gl, yline);
+    lineBindBuffer(gl, zline);
 
     //uniform
     const modelMtx = mat4.create();
@@ -111,7 +115,7 @@ async function draw(gl, canvas) {
     gl.bindTexture(gl.TEXTURE_2D, texture1);
     gl.texImage2D(gl.TEXTURE_2D, 0, textureInfo1.internalFormat, textureInfo1.width, textureInfo1.height,
         0, textureInfo1.format, textureInfo1.type, textureInfo1.data);
-    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture0"), 0); // 设置u_texture0为纹理单元 0
+
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -125,18 +129,22 @@ async function draw(gl, canvas) {
     gl.bindTexture(gl.TEXTURE_2D, texture2);
     gl.texImage2D(gl.TEXTURE_2D, 0, textureInfo2.internalFormat, textureInfo2.width, textureInfo2.height,
         0, textureInfo2.format, textureInfo2.type, textureInfo2.data);
-    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture1"), 1); // 设置u_texture1为纹理单元 1
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
+    gl.useProgram(programInfo.program);
+    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture0"), 0); // 设置u_texture0为纹理单元 0
+    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture1"), 1); // 设置u_texture1为纹理单元 1
 
     function dynamicDraw() {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);;
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.useProgram(programInfo.program);
 
         gl.uniformMatrix4fv(programInfo.u_modelMtx, false, modelMtx);
         gl.uniformMatrix4fv(programInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
@@ -148,6 +156,14 @@ async function draw(gl, canvas) {
         drawMesh(gl, programInfo, sphere);
         gl.uniform1i(programInfo.u_texture, 0); //使用第0个纹理
         drawMesh(gl, programInfo, cone);
+
+        gl.useProgram(lineProgramInfo.program);
+        gl.uniformMatrix4fv(lineProgramInfo.u_modelMtx, false, modelMtx);
+        gl.uniformMatrix4fv(lineProgramInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
+        gl.uniformMatrix4fv(lineProgramInfo.u_projMtx, false, projMtx);
+        drawLine(gl, lineProgramInfo, xline);
+        drawLine(gl, lineProgramInfo, yline);
+        drawLine(gl, lineProgramInfo, zline);
 
         requestAnimationFrame(dynamicDraw);
     }

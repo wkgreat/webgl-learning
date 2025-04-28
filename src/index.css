@@ -2,13 +2,22 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
+    border: none;
 }
 
 #root-div {}
 
-#option-div {}
+#option-div {
+    height: 5%;
+    width: 100%;
+    border: none;
+    background-color: black;
+}
 
 #demo-frame {
-    height: 800px;
-    width: 1050px;
+    box-sizing: border-box;
+    height: 95%;
+    width: 100%;
+    border-width: 1px;
+    border-color: rgb(180, 19, 19);
 }

@@ -3,18 +3,27 @@ import "./demo13.css"
 import Camera, { CameraMouseControl } from "../common/camera";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createCone, createRectangle, createSphere, drawMesh, meshBindBuffer } from "../common/webglutils";
+import { createChessBoardTexture, createCone, createLineMesh, createLineProgram, createRectangle, createSphere, drawLine, drawMesh, lineBindBuffer, meshBindBuffer } from "../common/webglutils";
 import { BlinnPhongMaterial, color01Hex2RGB, color01RGB2Hex, colorRGB2Hex } from "../common/material";
 
-const width = 1000;
-const height = 500;
+let width = 1000;
+let height = 500;
 
 function main() {
     const canvas = document.getElementById("demo13-canvas");
     if (canvas !== null) {
-        canvas.height = height;
-        canvas.width = width;
+        canvas.height = canvas.clientHeight;
+        canvas.width = canvas.clientWidth;
+        height = canvas.height;
+        width = canvas.width;
         const gl = canvas.getContext("webgl");
+        window.addEventListener('resize', () => {
+            canvas.height = canvas.clientHeight;
+            canvas.width = canvas.clientWidth;
+            height = canvas.height;
+            width = canvas.width;
+            gl.viewport(0, 0, width, height);
+        })
         draw(gl, canvas);
     } else {
         console.log("demo13 canvas is null");
@@ -108,18 +117,22 @@ function lightHelper(gl, program, position, color) {
     inputLightY.value = position[1];
     inputLightZ.value = position[2];
     const lightPos = position;
+    gl.useProgram(program.program);
     gl.uniform3fv(program.light.u_position, lightPos);
     gl.uniform4fv(program.light.u_color, color);
     inputLightX.addEventListener("input", (e) => {
         lightPos[0] = e.target.value;
+        gl.useProgram(program.program);
         gl.uniform3fv(program.light.u_position, lightPos);
     });
     inputLightY.addEventListener("input", (e) => {
         lightPos[1] = e.target.value;
+        gl.useProgram(program.program);
         gl.uniform3fv(program.light.u_position, lightPos);
     });
     inputLightZ.addEventListener("input", (e) => {
         lightPos[2] = e.target.value;
+        gl.useProgram(program.program);
         gl.uniform3fv(program.light.u_position, lightPos);
     });
 }
@@ -131,12 +144,15 @@ function lightHelper(gl, program, position, color) {
 */
 function materialHelper(gl, program, material) {
 
+    gl.useProgram(program.program);
+
     const shininessInput = document.getElementById("material-shininess");
     shininessInput.value = material.shininess;
     gl.uniform1f(program.material.u_shininess, material.shininess);
     shininessInput.addEventListener("input", (e) => {
         let v = e.target.value
         material.shininess = v;
+        gl.useProgram(program.program);
         gl.uniform1f(program.material.u_shininess, material.shininess);
     });
     //ambient
@@ -147,6 +163,7 @@ function materialHelper(gl, program, material) {
         let hex = e.target.value
         const rgb = color01Hex2RGB(hex);
         material.ambient = [...rgb, 1];
+        gl.useProgram(program.program);
         gl.uniform4fv(program.material.u_ambient, material.ambient);
     });
     //diffuse
@@ -157,6 +174,7 @@ function materialHelper(gl, program, material) {
         let hex = e.target.value
         const rgb = color01Hex2RGB(hex);
         material.diffuse = [...rgb, 1];
+        gl.useProgram(program.program);
         gl.uniform4fv(program.material.u_diffuse, material.diffuse);
     });
     //specular
@@ -167,6 +185,7 @@ function materialHelper(gl, program, material) {
         let hex = e.target.value
         const rgb = color01Hex2RGB(hex);
         material.specular = [...rgb, 1];
+        gl.useProgram(program.program);
         gl.uniform4fv(program.material.u_specular, material.specular);
     });
     //emission
@@ -177,6 +196,7 @@ function materialHelper(gl, program, material) {
         let hex = e.target.value
         const rgb = color01Hex2RGB(hex);
         material.emission = [...rgb, 1];
+        gl.useProgram(program.program);
         gl.uniform4fv(program.material.u_emission, material.emission);
     });
 }
@@ -189,18 +209,23 @@ async function draw(gl, canvas) {
 
     glConfig(gl);
 
-    const programInfo = createProgram(gl, vertSource, fragSource);
-    gl.useProgram(programInfo.program);
-
     //mesh
+    const programInfo = createProgram(gl, vertSource, fragSource);
     const sphere = createSphere(gl, 3, 100, 100, [0, 0, 5]);
     const plane = createRectangle(gl, [-20, -20, 0], [20, 20, 0]);
     const cone = createCone(gl, [-5, 5, 8], [-5, 5, 2], 3, 10, 10);
-
-    //buffer
     meshBindBuffer(gl, sphere);
     meshBindBuffer(gl, plane);
     meshBindBuffer(gl, cone);
+
+    //axis
+    const lineProgramInfo = createLineProgram(gl);
+    const xline = createLineMesh(gl, [-20, 0, 0, 20, 0, 0], [1.0, 0.0, 0.0, 1.0]);
+    const yline = createLineMesh(gl, [0, -20, 0, 0, 20, 0], [0.0, 1.0, 0.0, 1.0]);
+    const zline = createLineMesh(gl, [0, 0, -20, 0, 0, 20], [0.0, 0.0, 1.0, 1.0]);
+    lineBindBuffer(gl, xline);
+    lineBindBuffer(gl, yline);
+    lineBindBuffer(gl, zline);
 
     //第一个纹理
     const textureInfo1 = createChessBoardTexture(gl, 10, 10, 100, 200);
@@ -209,7 +234,6 @@ async function draw(gl, canvas) {
     gl.bindTexture(gl.TEXTURE_2D, texture1);
     gl.texImage2D(gl.TEXTURE_2D, 0, textureInfo1.internalFormat, textureInfo1.width, textureInfo1.height,
         0, textureInfo1.format, textureInfo1.type, textureInfo1.data);
-    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture0"), 0); // 设置u_texture0为纹理单元 0
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
@@ -223,21 +247,21 @@ async function draw(gl, canvas) {
     gl.bindTexture(gl.TEXTURE_2D, texture2);
     gl.texImage2D(gl.TEXTURE_2D, 0, textureInfo2.internalFormat, textureInfo2.width, textureInfo2.height,
         0, textureInfo2.format, textureInfo2.type, textureInfo2.data);
-    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture1"), 1); // 设置u_texture1为纹理单元 1
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
+    gl.useProgram(programInfo.program);
+    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture0"), 0); // 设置u_texture0为纹理单元 0
+    gl.uniform1i(gl.getUniformLocation(programInfo.program, "u_texture1"), 1); // 设置u_texture1为纹理单元 1
 
     //uniform
     const modelMtx = mat4.create();
     const camera = new Camera([20, 20, 20], [0, 0, 0], [0, 0, 1]); // 相机对象
     const mouseControl = new CameraMouseControl(camera, canvas);
     mouseControl.enable();
-    const projMtx = mat4.create();
-    mat4.perspective(projMtx, Math.PI / 3, width / height, 0.5, 1000);
 
     //material
     const ambient = [0.1, 0.1, 0.1, 1];
@@ -262,11 +286,15 @@ async function draw(gl, canvas) {
     lightHelper(gl, programInfo, lightPosition, ligthColor);
 
 
-
     function dynamicDraw() {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);;
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        const projMtx = mat4.create();
+        mat4.perspective(projMtx, Math.PI / 3, width / height, 0.5, 1000);
+
+        gl.useProgram(programInfo.program);
 
         gl.uniformMatrix4fv(programInfo.u_modelMtx, false, modelMtx);
         gl.uniformMatrix4fv(programInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
@@ -288,6 +316,15 @@ async function draw(gl, canvas) {
         drawMesh(gl, programInfo, sphere);
         gl.uniform1i(programInfo.u_texture, 0); //使用第0个纹理
         drawMesh(gl, programInfo, cone);
+
+        // draw axis
+        gl.useProgram(lineProgramInfo.program);
+        gl.uniformMatrix4fv(lineProgramInfo.u_modelMtx, false, modelMtx);
+        gl.uniformMatrix4fv(lineProgramInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
+        gl.uniformMatrix4fv(lineProgramInfo.u_projMtx, false, projMtx);
+        drawLine(gl, lineProgramInfo, xline);
+        drawLine(gl, lineProgramInfo, yline);
+        drawLine(gl, lineProgramInfo, zline);
 
         requestAnimationFrame(dynamicDraw);
     }

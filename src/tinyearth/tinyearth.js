@@ -7,15 +7,24 @@ import Camera, { CameraMouseControl } from "./camera";
 import proj4 from "proj4";
 import Projection from "./projection";
 
-const width = 1000;
-const height = 500;
+let width = 1000;
+let height = 500;
 
 function main() {
     const canvas = document.getElementById("tinyearth-canvas");
     if (canvas !== null) {
-        canvas.height = height;
-        canvas.width = width;
+        canvas.height = canvas.clientHeight;
+        canvas.width = canvas.clientWidth;
+        height = canvas.height;
+        width = canvas.width;
         const gl = canvas.getContext("webgl");
+        window.addEventListener('resize', () => {
+            canvas.height = canvas.clientHeight;
+            canvas.width = canvas.clientWidth;
+            height = canvas.height;
+            width = canvas.width;
+            gl.viewport(0, 0, width, height);
+        })
         draw(gl, canvas);
     } else {
         console.log("tinyearth canvas is null");
@@ -73,6 +82,7 @@ async function draw(gl, canvas) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        projection.setAspect(width / height);
         const projMtx = projection.perspective();
         for (let mesh of meshes) {
             drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera, projMtx);

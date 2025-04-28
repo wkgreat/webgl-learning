@@ -4,7 +4,20 @@ body {
     padding: 0;
 }
 
+#describe-div {
+    position: fixed;
+    left: 0px;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
 #demo6-canvas {
-    height: 500px;
-    width: 1000px;
+    height: 100%;
+    width: 100%;
+}
+
+#helper {
+    position: fixed;
+    top: 0px;
+    right: 0px;
+    background-color: rgba(255, 255, 255, 0.5);
 }

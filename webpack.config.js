@@ -25,10 +25,10 @@ const webpackPlugins = [
 
 for (const demo of demoList) {
     console.log(demo);
-    webpackEntry[demo] = `./src/${demo}/${demo}.js`;
+    webpackEntry[demo.name] = `./src/${demo.name}/${demo.name}.js`;
     webpackPlugins.push(new HtmlWebpackPlugin({
-        template: `src/${demo}/${demo}.html`,
-        filename: `${demo}.html`
+        template: `src/${demo.name}/${demo.name}.html`,
+        filename: `${demo.name}.html`
     }));
 }
 

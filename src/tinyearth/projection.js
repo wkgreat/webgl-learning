@@ -15,6 +15,10 @@ class Projection {
         this.far = far;
     }
 
+    setAspect(aspect) {
+        this.aspect = aspect;
+    }
+
     perspective() {
         return mat4.perspective(this.projMtx, this.fovy, this.aspect, this.near, this.far);
     }

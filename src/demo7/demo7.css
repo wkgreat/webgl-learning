@@ -4,6 +4,13 @@ body {
     padding: 0;
 }
 
+#describe-div {
+    position: fixed;
+    left: 0px;
+    background-color: rgba(255, 255, 255, 0.5);
+    max-width: 10%;
+}
+
 #demo7-canvas {
     height: 500px;
     width: 1000px;

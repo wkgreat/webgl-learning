@@ -1,4 +1,45 @@
 import { vec3, mat3, mat4, vec4 } from "gl-matrix";
+import lineVertSource from './line.vert'
+import lineFragSource from './line.frag'
+
+/**
+ * @param {WebGLRenderingContext} gl 
+*/
+export function createLineProgram(gl) {
+    /* 创建程序 */
+    const program = gl.createProgram();
+
+    /* 程序加载着色器 */
+    const vertShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertShader, lineVertSource);
+    gl.compileShader(vertShader);
+    gl.attachShader(program, vertShader);
+
+    const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragShader, lineFragSource);
+    gl.compileShader(fragShader);
+    gl.attachShader(program, fragShader);
+
+    gl.linkProgram(program);
+
+    if (!program) {
+        console.error("program is null");
+    }
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Program failed to link:', gl.getProgramInfoLog(program));
+    }
+
+    return {
+        program: program,
+        a_position: gl.getAttribLocation(program, 'a_position'),
+        a_color: gl.getAttribLocation(program, 'a_color'),
+
+        u_modelMtx: gl.getUniformLocation(program, 'u_modelMtx'),
+        u_viewMtx: gl.getUniformLocation(program, 'u_viewMtx'),
+        u_projMtx: gl.getUniformLocation(program, 'u_projMtx')
+    };
+}
 
 export function meshBindBuffer(gl, mesh, bufferInfo = {
     positionBuffer: gl.createBuffer(),
@@ -17,6 +58,20 @@ export function meshBindBuffer(gl, mesh, bufferInfo = {
     const texcoordBuffer = bufferInfo.texcoordBuffer;
     gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, mesh.texcoords, gl.STATIC_DRAW);
+}
+
+export function lineBindBuffer(gl, line, bufferInfo = {
+    positionBuffer: gl.createBuffer(),
+    colorBuffer: gl.createBuffer()
+}) {
+    line.bufferInfo = bufferInfo;
+    const positionBuffer = bufferInfo.positionBuffer;
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, line.vertices, gl.STATIC_DRAW);
+
+    const colorBuffer = bufferInfo.colorBuffer;
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, line.colors, gl.STATIC_DRAW);
 }
 
 /**
@@ -51,9 +106,32 @@ export function drawMesh(gl, programInfo, mesh) {
         gl.enableVertexAttribArray(programInfo.a_texcoord);
     }
 
-
-
     gl.drawArrays(gl.TRIANGLES, 0, mesh.nvertices);
+
+}
+
+/**
+ * @param {WebGLRenderingContext} gl
+ * @param {object} programInfo
+ * @param {object} line   
+*/
+export function drawLine(gl, programInfo, line) {
+
+    if (programInfo.a_position >= 0) {
+        const positionBuffer = line.bufferInfo.positionBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.vertexAttribPointer(programInfo.a_position, line.verticeSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(programInfo.a_position);
+    }
+
+    if (programInfo.a_color >= 0) {
+        const colorBuffer = line.bufferInfo.colorBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.vertexAttribPointer(programInfo.a_color, line.colorSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(programInfo.a_color);
+    }
+
+    gl.drawArrays(gl.LINES, 0, line.nvertices);
 
 }
 
@@ -217,6 +295,7 @@ export function createSphere(gl, radius = 1, xseg = 10, yseg = 10, center = [0, 
     }
 
     return {
+        type: gl.TRIANGLES,
         hasIndices: false,
         nvertices: vertices.length / 3,
         verticeSize: 3,
@@ -435,6 +514,7 @@ export function createConeAtOrigin(gl, radius = 1, height = 1, hseg = 10, vseg =
     }
 
     return {
+        type: gl.TRIANGLES,
         hasIndices: false,
         nvertices: positions.length / 3,
         verticeSize: 3,
@@ -443,4 +523,32 @@ export function createConeAtOrigin(gl, radius = 1, height = 1, hseg = 10, vseg =
         texcoords: new Float32Array(texcoords)
     }
 
+}
+
+/**
+ * @param {WebGLRenderingContext} gl
+ * @param {array} points
+ * @param {array} color  
+*/
+export function createLineMesh(gl, points, color) {
+
+    const nvertices = points.length / 3;
+    const colors = [];
+    if (color.length / 4 < nvertices) {
+        for (let i = 0; i < nvertices; ++i) {
+            colors.push(...color.slice(0, 4));
+        }
+    } else {
+        colors.push(...color);
+    }
+
+    return {
+        type: gl.LINES,
+        hasIndices: false,
+        nvertices: nvertices,
+        verticeSize: 3,
+        colorSize: 4,
+        vertices: new Float32Array(points),
+        colors: new Float32Array(colors),
+    }
 }

@@ -5,16 +5,25 @@ import { mat4 } from "gl-matrix";
 import { ObjMesh, ObjProvider } from "../common/objreader";
 import GLProgram from "./glprogram";
 
-const width = 1000;
-const height = 500;
+let width = 1000;
+let height = 500;
 
 function main() {
     const canvas = document.getElementById("demo6-canvas");
     if (canvas !== null) {
-        canvas.height = height;
-        canvas.width = width;
+        canvas.height = canvas.clientHeight;
+        canvas.width = canvas.clientWidth;
+        height = canvas.height;
+        width = canvas.width;
         const gl = canvas.getContext("webgl");
-        draw(gl);
+        window.addEventListener('resize', () => {
+            canvas.height = canvas.clientHeight;
+            canvas.width = canvas.clientWidth;
+            height = canvas.height;
+            width = canvas.width;
+            gl.viewport(0, 0, width, height);
+        })
+        draw(gl, canvas);
     } else {
         console.log("demo6 canvas is null");
     }
@@ -186,6 +195,12 @@ async function draw(gl) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        //更新projection
+        const projMtx = mat4.create();
+        mat4.perspective(projMtx, Math.PI / 3, width / height, 0.1, 1000);
+        const projMtxMtxLoc = gl.getUniformLocation(program.program, "projMtx");
+        gl.uniformMatrix4fv(projMtxMtxLoc, false, projMtx);
 
         // 加个小角度
         a = (a + Math.PI / (180 * 2)) % (Math.PI * 2);
