@@ -3,7 +3,7 @@ import "./demo13.css"
 import Camera, { CameraMouseControl } from "../common/camera";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createRectangle, createSphere, drawMesh, meshBindBuffer } from "../common/webglutils";
+import { createChessBoardTexture, createCone, createRectangle, createSphere, drawMesh, meshBindBuffer } from "../common/webglutils";
 import { BlinnPhongMaterial, color01Hex2RGB, color01RGB2Hex, colorRGB2Hex } from "../common/material";
 
 const width = 1000;
@@ -195,19 +195,12 @@ async function draw(gl, canvas) {
     //mesh
     const sphere = createSphere(gl, 3, 100, 100, [0, 0, 5]);
     const plane = createRectangle(gl, [-20, -20, 0], [20, 20, 0]);
+    const cone = createCone(gl, [-5, 5, 8], [-5, 5, 2], 3, 10, 10);
 
     //buffer
-    meshBindBuffer(gl, sphere, {
-        positionBuffer: gl.createBuffer(),
-        normalBuffer: gl.createBuffer(),
-        texcoordBuffer: gl.createBuffer()
-    });
-
-    meshBindBuffer(gl, plane, {
-        positionBuffer: gl.createBuffer(),
-        normalBuffer: gl.createBuffer(),
-        texcoordBuffer: gl.createBuffer()
-    });
+    meshBindBuffer(gl, sphere);
+    meshBindBuffer(gl, plane);
+    meshBindBuffer(gl, cone);
 
     //第一个纹理
     const textureInfo1 = createChessBoardTexture(gl, 10, 10, 100, 200);
@@ -291,8 +284,10 @@ async function draw(gl, canvas) {
 
         gl.uniform1i(programInfo.u_texture, 1); //使用第1个纹理
         drawMesh(gl, programInfo, plane);
-        gl.uniform1i(programInfo.u_texture, 0); //使用第2个纹理
+        gl.uniform1i(programInfo.u_texture, 0); //使用第0个纹理
         drawMesh(gl, programInfo, sphere);
+        gl.uniform1i(programInfo.u_texture, 0); //使用第0个纹理
+        drawMesh(gl, programInfo, cone);
 
         requestAnimationFrame(dynamicDraw);
     }

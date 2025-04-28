@@ -3,7 +3,7 @@ import "./demo12.css"
 import Camera, { CameraMouseControl } from "../common/camera";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createRectangle, createSphere, drawMesh, meshBindBuffer } from "../common/webglutils";
+import { createChessBoardTexture, createCone, createConeAtOrigin, createRectangle, createSphere, drawMesh, meshBindBuffer } from "../common/webglutils";
 
 const width = 1000;
 const height = 500;
@@ -86,21 +86,15 @@ async function draw(gl, canvas) {
     gl.useProgram(programInfo.program);
 
     //mesh
-    const sphere = createSphere(gl, 3, 100, 100, [0, 0, 5]);
-    const plane = createRectangle(gl, [-20, -20, 0], [20, 20, 0]);
+    const sphere = createSphere(gl, 1, 100, 100, [5, 5, 5]); // sphere
+    const plane = createRectangle(gl, [-20, -20, 0], [20, 20, 0]); // rectangle
+    const cone = createCone(gl, [-5, 5, 8], [-5, 5, 2], 3, 10, 10); //cone
+    //axis
 
     //buffer
-    meshBindBuffer(gl, sphere, {
-        positionBuffer: gl.createBuffer(),
-        normalBuffer: gl.createBuffer(),
-        texcoordBuffer: gl.createBuffer()
-    });
-
-    meshBindBuffer(gl, plane, {
-        positionBuffer: gl.createBuffer(),
-        normalBuffer: gl.createBuffer(),
-        texcoordBuffer: gl.createBuffer()
-    });
+    meshBindBuffer(gl, sphere);
+    meshBindBuffer(gl, plane);
+    meshBindBuffer(gl, cone);
 
     //uniform
     const modelMtx = mat4.create();
@@ -150,8 +144,10 @@ async function draw(gl, canvas) {
 
         gl.uniform1i(programInfo.u_texture, 1); //使用第1个纹理
         drawMesh(gl, programInfo, plane);
-        gl.uniform1i(programInfo.u_texture, 0); //使用第2个纹理
+        gl.uniform1i(programInfo.u_texture, 0); //使用第0个纹理
         drawMesh(gl, programInfo, sphere);
+        gl.uniform1i(programInfo.u_texture, 0); //使用第0个纹理
+        drawMesh(gl, programInfo, cone);
 
         requestAnimationFrame(dynamicDraw);
     }

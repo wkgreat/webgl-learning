@@ -53,7 +53,7 @@ void main() {
 
     vec3 pos = (u_invProjViewMtx * v_ndsPosition).xyz;
     vec3 eye = camera.position;
-    vec4 ambient = vec4(0.1, 0.1, 0.1, 1); //环境光
+    vec4 ambient = vec4(1, 1, 1, 1); //环境光
     vec4 texcolor = vec4(0, 0, 0, 1);
 
     if(u_texture==0) {

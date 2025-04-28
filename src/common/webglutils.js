@@ -1,6 +1,10 @@
-import { vec3 } from "gl-matrix";
+import { vec3, mat3, mat4, vec4 } from "gl-matrix";
 
-export function meshBindBuffer(gl, mesh, bufferInfo) {
+export function meshBindBuffer(gl, mesh, bufferInfo = {
+    positionBuffer: gl.createBuffer(),
+    normalBuffer: gl.createBuffer(),
+    texcoordBuffer: gl.createBuffer()
+}) {
     mesh.bufferInfo = bufferInfo;
     const positionBuffer = bufferInfo.positionBuffer;
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
@@ -217,6 +221,224 @@ export function createSphere(gl, radius = 1, xseg = 10, yseg = 10, center = [0, 
         nvertices: vertices.length / 3,
         verticeSize: 3,
         vertices: new Float32Array(vertices),
+        normals: new Float32Array(normals),
+        texcoords: new Float32Array(texcoords)
+    }
+
+}
+
+/**
+ * 创建一个旋转矩阵，将from向量旋转到to向量方向
+ * @param {vec3} from 源向量
+ * @param {vec3} to 目标向量
+ * @returns {mat4} 旋转矩阵
+ */
+function createRotationMatrix(from, to) {
+    // 归一化向量
+    const vFrom = vec3.normalize(vec3.create(), from);
+    const vTo = vec3.normalize(vec3.create(), to);
+
+    // 计算旋转轴
+    const axis = vec3.cross(vec3.create(), vFrom, vTo);
+    const axisLength = vec3.length(axis);
+
+    // 如果两向量已经平行（同向或反向）
+    if (axisLength < 1e-6) {
+        const dot = vec3.dot(vFrom, vTo);
+        if (dot > 0.9999) {
+            // 同方向，返回单位矩阵
+            return mat4.create();
+        } else {
+            // 反方向，需要旋转180度，找一个任意垂直的轴
+            let temp = vec3.fromValues(1, 0, 0);
+            if (Math.abs(vFrom[0]) > 0.9) {
+                temp = vec3.fromValues(0, 1, 0);
+            }
+            const orthoAxis = vec3.cross(vec3.create(), vFrom, temp);
+            vec3.normalize(orthoAxis, orthoAxis);
+
+            const out = mat4.create();
+            mat4.rotate(out, out, Math.PI, orthoAxis);
+            return out;
+        }
+    }
+
+    // 正常情况
+    vec3.normalize(axis, axis);
+
+    // 计算角度
+    const angle = Math.acos(Math.min(Math.max(vec3.dot(vFrom, vTo), -1.0), 1.0));
+
+    // 构造旋转矩阵
+    const out = mat4.create();
+    mat4.rotate(out, out, angle, axis);
+    return out;
+}
+
+function coneMoveMtx(p0, p1, p2, p3) {
+
+    const vp0 = vec3.fromValues(...p0);
+    const vp1 = vec3.fromValues(...p1);
+    const vp2 = vec3.fromValues(...p2);
+    const vp3 = vec3.fromValues(...p3);
+
+    const v1 = vec3.subtract(vec3.create(), vp1, vp0);
+    const v2 = vec3.subtract(vec3.create(), vp3, vp2);
+    vec3.normalize(v1, v1);
+    vec3.normalize(v2, v2);
+
+    const R = createRotationMatrix(v1, v2);
+
+    const T1 = mat4.translate(mat4.create(), mat4.create(), [-p0[0], -p0[1], -p0[2]])
+    const T2 = mat4.translate(mat4.create(), mat4.create(), [p2[0], p2[1], p2[2]]);
+
+    const M = mat4.create();
+    mat4.multiply(M, M, T2);
+    mat4.multiply(M, M, R);
+    mat4.multiply(M, M, T1);
+
+    return M;
+
+
+}
+
+// p0 顶点
+// p1 底点
+export function createCone(gl, p0, p1, radius = 1, hseg = 10, vseg = 10) {
+
+    const vp0 = vec3.fromValues(p0[0], p0[1], p0[2]);
+    const vp1 = vec3.fromValues(p1[0], p1[1], p1[2]);
+    const v = vec3.subtract(vec3.create(), vp0, vp1);
+    const h = vec3.length(v);
+    console.log(`h: ${h}`);
+    const p2 = [0, 0, 0];
+    const p3 = [0, 0, h];
+    const M = coneMoveMtx(p2, p3, p0, p1);
+    const cone = createConeAtOrigin(gl, radius, h, hseg, vseg);
+
+    for (let i = 0; i < cone.nvertices; ++i) {
+
+        const x = cone.vertices[i * 3];
+        const y = cone.vertices[i * 3 + 1];
+        const z = cone.vertices[i * 3 + 2];
+        const vc = vec4.fromValues(x, y, z, 1);
+        const tvc = vec4.transformMat4(vec4.create(), vc, M);
+        cone.vertices[i * 3] = tvc[0];
+        cone.vertices[i * 3 + 1] = tvc[1];
+        cone.vertices[i * 3 + 2] = tvc[2];
+
+        const nx = cone.normals[i * 3];
+        const ny = cone.normals[i * 3 + 1];
+        const nz = cone.normals[i * 3 + 2];
+        const vn = vec4.fromValues(nx, ny, nz, 0);
+        const tvn = vec4.transformMat4(vec4.create(), vn, M)
+        const tvn3 = vec3.fromValues(tvn[0], tvn[1], tvn[2]);
+        vec3.normalize(tvn3, tvn3);
+        cone.normals[i * 3] = tvn[0];
+        cone.normals[i * 3 + 1] = tvn[1];
+        cone.normals[i * 3 + 2] = tvn[2];
+
+    }
+
+    return cone;
+
+}
+
+function pointAtConeCircle(gl, theta, height, radius) {
+    const x = radius * Math.cos(theta);
+    const y = radius * Math.sin(theta);
+    const z = height;
+    return [x, y, z];
+}
+
+function normalOnConeAtOrigin(gl, p) {
+    let vp = vec3.fromValues(...p);
+    let vo = vec3.fromValues(0, 0, 0);
+    let v1 = vec3.subtract(vec3.create(), vp, vo);
+    let vc = vec3.fromValues(0, 0, p[2]);
+    let va = vec3.subtract(vec3.create(), vc, vo);
+    let vr = vec3.subtract(vec3.create(), vp, vc);
+    let v2 = vec3.cross(vec3.create(), vr, va);
+    let n = vec3.cross(vec3.create(), v1, v2);
+    if (vec3.dot(n, vr) < 0) {
+        vec3.negate(n, n);
+    }
+    vec3.normalize(n, n);
+    return n;
+}
+
+export function createConeAtOrigin(gl, radius = 1, height = 1, hseg = 10, vseg = 10) {
+    const d_a = Math.PI * 2 / hseg;
+    const d_h = height / vseg;
+    const positions = [];
+    const normals = [];
+    const texcoords = [];
+    //侧面
+    for (let i = 0; i < hseg; ++i) {
+        for (let j = 0; j < vseg; ++j) {
+            const a0 = d_a * i;
+            const a1 = d_a * (i + 1);
+            const h0 = d_h * j;
+            const h1 = d_h * (j + 1);
+            const r0 = (h0 / height) * radius;
+            const r1 = (h1 / height) * radius;
+            //位置
+
+            const p0 = pointAtConeCircle(gl, a0, h0, r0);
+            const p1 = pointAtConeCircle(gl, a1, h0, r0);
+            const p2 = pointAtConeCircle(gl, a1, h1, r1);
+            const p3 = pointAtConeCircle(gl, a0, h1, r1);
+            //法线
+            const n2 = normalOnConeAtOrigin(gl, p2);
+            const n3 = normalOnConeAtOrigin(gl, p3);
+            let n0 = [0, 0, 0];
+            let n1 = [0, 0, 0];
+            if (h0 == 0) {
+                n0 = n3;
+                n1 = n2;
+            } else {
+                n0 = normalOnConeAtOrigin(gl, p0);
+                n1 = normalOnConeAtOrigin(gl, p1);
+            }
+
+            //坐标
+            const c0 = [i * 1.0 / hseg, j * 1.0 / hseg];
+            const c1 = [(i + 1) * 1.0 / hseg, j * 1.0 / hseg];
+            const c2 = [(i + 1) * 1.0 / hseg, (j + 1) * 1.0 / hseg];
+            const c3 = [i * 1.0 / hseg, (j + 1) * 1.0 / hseg];
+
+            positions.push(...p0, ...p2, ...p3);
+            positions.push(...p0, ...p1, ...p2);
+            normals.push(...n0, ...n2, ...n3);
+            normals.push(...n0, ...n1, ...n2);
+            texcoords.push(...c0, ...c2, ...c3);
+            texcoords.push(...c0, ...c1, ...c2);
+        }
+    }
+
+    //底面
+    for (let i = 0; i < hseg; ++i) {
+        const a0 = d_a * i;
+        const a1 = d_a * (i + 1);
+        const p0 = pointAtConeCircle(gl, a0, height, radius);
+        const p1 = pointAtConeCircle(gl, a1, height, radius);
+        const p2 = [0, 0, height];
+        const n0 = [0, 0, 1];
+        const n1 = [0, 0, 1];
+        const n2 = [0, 0, 1];
+        const c0 = [i * 1.0 / hseg, 0];
+        const c1 = [(i + 1) * 1.0 / hseg, 0];
+        const c2 = [0, 1];
+        positions.push(...p0, ...p1, ...p2);
+        normals.push(...n0, ...n1, ...n2);
+        texcoords.push(...c0, ...c1, ...c1);
+    }
+
+    return {
+        hasIndices: false,
+        nvertices: positions.length / 3,
+        verticeSize: 3,
+        vertices: new Float32Array(positions),
         normals: new Float32Array(normals),
         texcoords: new Float32Array(texcoords)
     }
