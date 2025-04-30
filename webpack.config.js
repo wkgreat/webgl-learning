@@ -1,4 +1,6 @@
 const path = require('path');
+const fs = require('fs');
+const unzipper = require('unzipper');
 
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
@@ -9,7 +11,35 @@ const demoList = require('./demolist.json').demos;
 const webpackEntry = {
     app: './src/index.js'
 }
+
+class UnzipPlugin {
+    constructor(options) {
+        this.zipPath = options.zipPath;
+        this.outputPath = options.outputPath;
+    }
+
+    async apply(compiler) {
+
+        if (!fs.existsSync(this.zipPath)) {
+            throw new Error(`Zip file not found: ${this.zipPath}`);
+        }
+
+        console.log(`[UnzipPlugin] 解压 ${this.zipPath} 到 ${this.outputPath}`);
+        await fs.createReadStream(this.zipPath)
+            .pipe(unzipper.Extract({ path: this.outputPath }))
+            .promise();
+    }
+}
+
 const webpackPlugins = [
+    new UnzipPlugin({
+        zipPath: "assets/data/pointcloud/dragon.zip",
+        outputPath: "assets/data/pointcloud"
+    }),
+    new UnzipPlugin({
+        zipPath: "assets/data/pointcloud/swisssurface3d_2601_1199_EPSG3857_samples.zip",
+        outputPath: "assets/data/pointcloud"
+    }),
     new HtmlWebpackPlugin({
         template: 'src/index.html'
     }),
