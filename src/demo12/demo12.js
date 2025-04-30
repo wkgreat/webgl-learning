@@ -1,9 +1,10 @@
 import { vec3, vec4, mat4, mat3 } from "gl-matrix";
 import "./demo12.css"
+import "../index.css"
 import Camera, { CameraMouseControl } from "../common/camera";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createCone, createConeAtOrigin, createLineMesh, createLineProgram, createRectangle, createSphere, drawLine, drawMesh, lineBindBuffer, meshBindBuffer } from "../common/webglutils";
+import { createChessBoardTexture, createCone, createConeAtOrigin, createLineMesh, createLineProgram, createPointProgram, createPoints, createRectangle, createSphere, drawLine, drawMesh, drawPoint, lineBindBuffer, meshBindBuffer, pointBindBuffer } from "../common/webglutils";
 
 const width = 1000;
 const height = 500;
@@ -100,6 +101,17 @@ async function draw(gl, canvas) {
     lineBindBuffer(gl, yline);
     lineBindBuffer(gl, zline);
 
+    //points
+    const pointProgramInfo = createPointProgram(gl);
+    const points = createPoints(gl, [
+        5, -5, 5,
+        5, -10, 5
+    ], [
+        1.0, 0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0, 1.0
+    ], [10, 20]);
+    pointBindBuffer(gl, points);
+
     //uniform
     const modelMtx = mat4.create();
     const camera = new Camera([10, 10, 10], [0, 0, 0], [0, 0, 1]); // 相机对象
@@ -164,6 +176,12 @@ async function draw(gl, canvas) {
         drawLine(gl, lineProgramInfo, xline);
         drawLine(gl, lineProgramInfo, yline);
         drawLine(gl, lineProgramInfo, zline);
+
+        gl.useProgram(pointProgramInfo.program);
+        gl.uniformMatrix4fv(pointProgramInfo.u_modelMtx, false, modelMtx);
+        gl.uniformMatrix4fv(pointProgramInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
+        gl.uniformMatrix4fv(pointProgramInfo.u_projMtx, false, projMtx);
+        drawPoint(gl, pointProgramInfo, points);
 
         requestAnimationFrame(dynamicDraw);
     }

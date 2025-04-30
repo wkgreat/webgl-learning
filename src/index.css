@@ -21,3 +21,8 @@ body {
     border-width: 1px;
     border-color: rgb(180, 19, 19);
 }
+
+.demo-canvas {
+    height: 100%;
+    width: 100%;
+}

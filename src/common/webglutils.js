@@ -1,6 +1,8 @@
 import { vec3, mat3, mat4, vec4 } from "gl-matrix";
 import lineVertSource from './line.vert'
 import lineFragSource from './line.frag'
+import pointVertSource from './point.vert'
+import pointFragSource from './point.frag'
 
 /**
  * @param {WebGLRenderingContext} gl 
@@ -41,6 +43,46 @@ export function createLineProgram(gl) {
     };
 }
 
+/**
+ * @param {WebGLRenderingContext} gl 
+*/
+export function createPointProgram(gl) {
+    /* 创建程序 */
+    const program = gl.createProgram();
+
+    /* 程序加载着色器 */
+    const vertShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertShader, pointVertSource);
+    gl.compileShader(vertShader);
+    gl.attachShader(program, vertShader);
+
+    const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragShader, pointFragSource);
+    gl.compileShader(fragShader);
+    gl.attachShader(program, fragShader);
+
+    gl.linkProgram(program);
+
+    if (!program) {
+        console.error("program is null");
+    }
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Program failed to link:', gl.getProgramInfoLog(program));
+    }
+
+    return {
+        program: program,
+        a_position: gl.getAttribLocation(program, 'a_position'),
+        a_color: gl.getAttribLocation(program, 'a_color'),
+        a_size: gl.getAttribLocation(program, 'a_size'),
+
+        u_modelMtx: gl.getUniformLocation(program, 'u_modelMtx'),
+        u_viewMtx: gl.getUniformLocation(program, 'u_viewMtx'),
+        u_projMtx: gl.getUniformLocation(program, 'u_projMtx')
+    };
+}
+
 export function meshBindBuffer(gl, mesh, bufferInfo = {
     positionBuffer: gl.createBuffer(),
     normalBuffer: gl.createBuffer(),
@@ -72,6 +114,25 @@ export function lineBindBuffer(gl, line, bufferInfo = {
     const colorBuffer = bufferInfo.colorBuffer;
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, line.colors, gl.STATIC_DRAW);
+}
+
+export function pointBindBuffer(gl, point, bufferInfo = {
+    positionBuffer: gl.createBuffer(),
+    colorBuffer: gl.createBuffer(),
+    sizeBuffer: gl.createBuffer()
+}) {
+    point.bufferInfo = bufferInfo;
+    const positionBuffer = bufferInfo.positionBuffer;
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, point.vertices, gl.STATIC_DRAW);
+
+    const colorBuffer = bufferInfo.colorBuffer;
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, point.colors, gl.STATIC_DRAW);
+
+    const sizeBuffer = bufferInfo.sizeBuffer;
+    gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, point.sizes, gl.STATIC_DRAW);
 }
 
 /**
@@ -133,6 +194,31 @@ export function drawLine(gl, programInfo, line) {
 
     gl.drawArrays(gl.LINES, 0, line.nvertices);
 
+}
+
+export function drawPoint(gl, programInfo, point) {
+    if (programInfo.a_position >= 0) {
+        const positionBuffer = point.bufferInfo.positionBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.vertexAttribPointer(programInfo.a_position, point.verticeSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(programInfo.a_position);
+    }
+
+    if (programInfo.a_color >= 0) {
+        const colorBuffer = point.bufferInfo.colorBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.vertexAttribPointer(programInfo.a_color, point.colorSize, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(programInfo.a_color);
+    }
+
+    if (programInfo.a_size >= 0) {
+        const sizeBuffer = point.bufferInfo.sizeBuffer;
+        gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuffer);
+        gl.vertexAttribPointer(programInfo.a_size, 1, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(programInfo.a_size);
+    }
+
+    gl.drawArrays(gl.POINTS, 0, point.nvertices);
 }
 
 /**
@@ -550,5 +636,46 @@ export function createLineMesh(gl, points, color) {
         colorSize: 4,
         vertices: new Float32Array(points),
         colors: new Float32Array(colors),
+    }
+}
+
+export function createPoints(gl, points, color, size) {
+
+    const nvertices = points.length / 3;
+    const colors = [];
+    if (color.length / 4 < nvertices) {
+        for (let i = 0; i < nvertices; ++i) {
+            colors.push(...color.slice(0, 4));
+        }
+    } else {
+        colors.push(...color);
+    }
+    const sizes = [];
+    if (typeof size === 'number') {
+        for (let i = 0; i < nvertices; ++i) {
+            sizes.push(size);
+        }
+    } else if (Array.isArray(size)) {
+        if (size.length < nvertices) {
+            const r = nvertices - size.length;
+            const v = size[size.length - 1];
+            sizes.push(...size);
+            for (let i = 0; i < r; ++i) {
+                sizes.push(v);
+            }
+        } else {
+            sizes.push(...size);
+        }
+    }
+
+    return {
+        type: gl.POINTS,
+        hasIndices: false,
+        nvertices: nvertices,
+        verticeSize: 3,
+        colorSize: 4,
+        vertices: new Float32Array(points),
+        colors: new Float32Array(colors),
+        sizes: new Float32Array(sizes)
     }
 }

@@ -53,6 +53,14 @@
             "describe": "几何对象加光照"
         },
         {
+            "name": "demo14",
+            "describe": "绘制点云1"
+        },
+        {
+            "name": "demo15",
+            "describe": "绘制点云2"
+        },
+        {
             "name": "tinyearth",
             "describe": "三维地球"
         }
