@@ -3,6 +3,74 @@ import lineVertSource from './line.vert'
 import lineFragSource from './line.frag'
 import pointVertSource from './point.vert'
 import pointFragSource from './point.frag'
+import triangleVertSource from './triangle.vert'
+import triangleFragSource from './triangle.frag'
+
+/**
+ * @param {WebGLRenderingContext} gl 
+*/
+export function createTriangleProgram(gl) {
+    /* 创建程序 */
+    const program = gl.createProgram();
+
+    /* 程序加载着色器 */
+    const vertShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertShader, triangleVertSource);
+    gl.compileShader(vertShader);
+    gl.attachShader(program, vertShader);
+
+    const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragShader, triangleFragSource);
+    gl.compileShader(fragShader);
+    gl.attachShader(program, fragShader);
+
+    gl.linkProgram(program);
+
+    if (!program) {
+        console.error("program is null");
+    }
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error('Program failed to link:', gl.getProgramInfoLog(program));
+    }
+
+    return {
+        program: program,
+        a_position: gl.getAttribLocation(program, 'a_position'),
+        a_normal: gl.getAttribLocation(program, 'a_normal'),
+        a_texcoord: gl.getAttribLocation(program, 'a_texcoord'),
+
+        u_modelMtx: gl.getUniformLocation(program, 'u_modelMtx'),
+        u_viewMtx: gl.getUniformLocation(program, 'u_viewMtx'),
+        u_projMtx: gl.getUniformLocation(program, 'u_projMtx'),
+        u_texture: gl.getUniformLocation(program, 'u_texture'),
+
+        u_invProjViewMtx: gl.getUniformLocation(program, 'u_invProjViewMtx'),
+
+        u_textureMatrix: gl.getUniformLocation(program, 'u_textureMatrix'),
+        u_depthTexture: gl.getUniformLocation(program, 'u_depthTexture'),
+        u_shadow_bias: gl.getUniformLocation(program, 'u_shadow_bias'),
+
+        material: {
+            u_ambient: gl.getUniformLocation(program, 'material.ambient'),
+            u_diffuse: gl.getUniformLocation(program, 'material.diffuse'),
+            u_specular: gl.getUniformLocation(program, 'material.specular'),
+            u_emission: gl.getUniformLocation(program, 'material.emission'),
+            u_shininess: gl.getUniformLocation(program, 'material.shininess'),
+            u_ambient: gl.getUniformLocation(program, 'material.ambient'),
+        },
+
+        light: {
+            u_position: gl.getUniformLocation(program, 'light.position'),
+            u_color: gl.getUniformLocation(program, 'light.color'),
+        },
+
+        camera: {
+            u_position: gl.getUniformLocation(program, 'camera.position')
+        }
+
+    };
+}
 
 /**
  * @param {WebGLRenderingContext} gl 
@@ -264,11 +332,17 @@ function caculateRectangleNormal(p0, p1, p2) {
 }
 
 export function createRectangle(gl, p0 = [-1, -1, 0], p1 = [1, 1, 1]) {
+    let a0 = p0;
+    let a1 = [p1[0], p0[1], p0[2]];
+    let a2 = p1;
+    let a3 = [p0[0], p1[1], p1[2]];
 
-    const a0 = p0;
-    const a1 = [p1[0], p0[1], p0[2]];
-    const a2 = p1;
-    const a3 = [p0[0], p1[1], p1[2]];
+    if (p0[0] === p1[0]) {
+        a0 = p0;
+        a1 = [p0[0], p1[1], p0[2]];
+        a2 = [p0[0], p1[1], p1[2]];
+        a3 = [p0[0], p0[1], p1[2]];
+    }
 
     const vertices = [
         ...a0,
@@ -310,6 +384,89 @@ export function createRectangle(gl, p0 = [-1, -1, 0], p1 = [1, 1, 1]) {
         texcoords: new Float32Array(texcoords)
     }
 
+
+}
+
+export function createCube(gl, p0, p1) {
+
+    let t = 0;
+    if (p0[0] > p1[0]) {
+        t = p0[0];
+        p0[0] = p1[0];
+        p1[0] = t;
+    }
+    if (p0[1] > p1[1]) {
+        t = p0[1];
+        p0[1] = p1[1];
+        p1[1] = t;
+    }
+    if (p0[2] > p1[2]) {
+        t = p0[2];
+        p0[2] = p1[2];
+        p1[2] = t;
+    }
+
+    const vertices = [];
+    const normals = [];
+    const texcoords = [];
+    let nvertices = 0;
+    //front
+    let a = [p1[0], p0[1], p0[2]];
+    let b = [p1[0], p1[1], p1[2]];
+    let rect = createRectangle(gl, a, b);
+    vertices.push(...rect.vertices);
+    normals.push(...rect.normals);
+    texcoords.push(...rect.texcoords);
+    nvertices += rect.nvertices;
+    //back
+    a = [p0[0], p1[1], p0[2]];
+    b = [p0[0], p0[1], p1[2]];
+    rect = createRectangle(gl, a, b);
+    vertices.push(...rect.vertices);
+    normals.push(...rect.normals);
+    texcoords.push(...rect.texcoords);
+    nvertices += rect.nvertices;
+    //left
+    a = p0;
+    b = [p1[0], p0[1], p1[2]];
+    rect = createRectangle(gl, a, b);
+    vertices.push(...rect.vertices);
+    normals.push(...rect.normals);
+    texcoords.push(...rect.texcoords);
+    nvertices += rect.nvertices;
+    //right
+    a = [p1[0], p1[1], p0[2]];
+    b = [p0[0], p1[1], p1[2]];
+    rect = createRectangle(gl, a, b);
+    vertices.push(...rect.vertices);
+    normals.push(...rect.normals);
+    texcoords.push(...rect.texcoords);
+    nvertices += rect.nvertices;
+    //up
+    a = [p0[0], p0[1], p1[2]];
+    b = [p1[0], p1[1], p1[2]];
+    rect = createRectangle(gl, a, b);
+    vertices.push(...rect.vertices);
+    normals.push(...rect.normals);
+    texcoords.push(...rect.texcoords);
+    nvertices += rect.nvertices;
+    //down
+    a = [p1[0], p0[1], p0[2]];
+    b = [p0[0], p1[1], p0[2]];
+    rect = createRectangle(gl, a, b);
+    vertices.push(...rect.vertices);
+    normals.push(...rect.normals);
+    texcoords.push(...rect.texcoords);
+    nvertices += rect.nvertices;
+
+    return {
+        hasIndices: false,
+        nvertices: nvertices,
+        verticeSize: 3,
+        vertices: new Float32Array(vertices),
+        normals: new Float32Array(normals),
+        texcoords: new Float32Array(texcoords)
+    }
 
 }
 

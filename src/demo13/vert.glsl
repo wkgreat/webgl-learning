@@ -14,6 +14,5 @@ void main() {
     v_ndsPosition = u_projMtx * u_viewMtx * u_modelMtx *  a_position;
     gl_Position = v_ndsPosition;
     v_texcoord = a_texcoord;
-    // v_normal = normalize((normalModelViewMtx * vec4(a_normal, 0)).xyz); // normal from local to view space
     v_normal = normalize(a_normal);
 }

@@ -8,7 +8,7 @@ body {
 #root-div {}
 
 #option-div {
-    height: 5%;
+    height: 8%;
     width: 100%;
     border: none;
     background-color: black;
@@ -16,7 +16,7 @@ body {
 
 #demo-frame {
     box-sizing: border-box;
-    height: 95%;
+    height: 92%;
     width: 100%;
     border-width: 1px;
     border-color: rgb(180, 19, 19);

@@ -61,6 +61,18 @@
             "describe": "绘制点云2"
         },
         {
+            "name": "demo16",
+            "describe": "深度纹理"
+        },
+        {
+            "name": "demo17",
+            "describe": "渲染到纹理"
+        },
+        {
+            "name": "demo18",
+            "describe": "阴影"
+        },
+        {
             "name": "tinyearth",
             "describe": "三维地球"
         }

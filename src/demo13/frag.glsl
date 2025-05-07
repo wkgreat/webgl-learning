@@ -5,6 +5,10 @@ uniform sampler2D u_texture1;
 uniform int u_texture;
 uniform mat4 u_invProjViewMtx;
 
+uniform mat4 u_modelMtx;
+uniform mat4 u_projMtx;
+uniform mat4 u_viewMtx;
+
 varying vec2 v_texcoord;
 varying vec3 v_normal;
 varying vec4 v_ndsPosition;
