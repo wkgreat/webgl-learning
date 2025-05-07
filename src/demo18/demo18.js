@@ -3,7 +3,7 @@ import "./demo18.css"
 import Camera, { CameraMouseControl } from "../common/camera";
 import { createChessBoardTexture, createCone, createCube, createLineMesh, createLineProgram, createRectangle, createSphere, createTriangleProgram, drawLine, drawMesh, lineBindBuffer, meshBindBuffer } from "../common/webglutils";
 import { BlinnPhongMaterial, color01Hex2RGB, color01RGB2Hex, colorRGB2Hex } from "../common/material";
-import { createShadowProgram, drawShadow, setShadowFrameBuffer, shadowBindBuffer } from "../common/shadow";
+import { createShadowProgram, drawShadow, setShadowFrameBuffer, shadowBindBuffer, ShadowMap } from "../common/shadow";
 
 let width = 1000;
 let height = 500;
@@ -134,6 +134,22 @@ function materialHelper(gl, program, material) {
 
 /**
  * @param {WebGLRenderingContext} gl
+ * @param {ShadowMap} shadowMap  
+*/
+function shadowHelper(gl, shadowMap, program) {
+    gl.useProgram(program.program);
+    const baisInput = document.getElementById("shadow-bias");
+    gl.uniform1f(program.u_shadow_bias, shadowMap.bais);
+    baisInput.value = shadowMap.bais;
+    baisInput.addEventListener("input", (e) => {
+        let v = e.target.value;
+        console.log(v);
+        shadowMap.bias = v;
+    });
+}
+
+/**
+ * @param {WebGLRenderingContext} gl
  * @param {HTMLElement} canvas
 */
 async function draw(gl, canvas) {
@@ -152,11 +168,8 @@ async function draw(gl, canvas) {
     meshBindBuffer(gl, cube);
 
     //shadow
-    const shadowProgramInfo = createShadowProgram(gl);
-    const shadowInfo = setShadowFrameBuffer(gl, 2048, 2048);
-    shadowBindBuffer(gl, sphere, sphere.bufferInfo);
-    shadowBindBuffer(gl, cone, cone.bufferInfo);
-    shadowBindBuffer(gl, cube, cube.bufferInfo);
+    const shadowMap = new ShadowMap(gl, 2048, 2048);
+    shadowHelper(gl, shadowMap, programInfo);
 
     //axis
     const lineProgramInfo = createLineProgram(gl);
@@ -210,7 +223,7 @@ async function draw(gl, canvas) {
 
     //阴影纹理
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, shadowInfo.depthTexture);
+    gl.bindTexture(gl.TEXTURE_2D, shadowMap.depthTexture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
@@ -219,29 +232,15 @@ async function draw(gl, canvas) {
     gl.useProgram(programInfo.program);
     gl.uniform1i(programInfo.u_texture, 0); // 设置u_texture为纹理单元 0
     gl.uniform1i(programInfo.u_depthTexture, 1); // 设置u_depthTexture为纹理单元 1
-    gl.uniform1f(programInfo.u_shadow_bias, 1E-5);
 
     function dynamicDraw() {
 
-        //shadow
-        gl.useProgram(shadowProgramInfo.program);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, shadowInfo.frameBuffer);
-        gl.viewport(0, 0, shadowInfo.width, shadowInfo.height);
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clearDepth(1.0);;
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        let lightProjMtx = mat4.create();
-        mat4.perspective(lightProjMtx, Math.PI / 3, shadowInfo.width / shadowInfo.height, 0.1, 200);
-        const shadowViewMtx = mat4.lookAt(mat4.create(), lightPosition, camera.to, camera.up);
-        gl.uniformMatrix4fv(shadowProgramInfo.u_modelMtx, false, modelMtx);
-        gl.uniformMatrix4fv(shadowProgramInfo.u_viewMtx, false, shadowViewMtx);
-        gl.uniformMatrix4fv(shadowProgramInfo.u_projMtx, false, lightProjMtx);
-        drawShadow(gl, shadowInfo, shadowProgramInfo, sphere);
-        drawShadow(gl, shadowInfo, shadowProgramInfo, cone);
-        drawShadow(gl, shadowInfo, shadowProgramInfo, cube);
-
-        const textureMatrix = mat4.create();
-        mat4.multiply(textureMatrix, lightProjMtx, shadowViewMtx);
+        //阴影映射
+        shadowMap.prepareDraw();
+        shadowMap.setShadowInfo(lightPosition, camera.to, modelMtx);
+        shadowMap.drawShadow(sphere);
+        shadowMap.drawShadow(cone);
+        shadowMap.drawShadow(cube);
 
         //绘制物体
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -251,7 +250,9 @@ async function draw(gl, canvas) {
         gl.clearDepth(1.0);;
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        gl.uniformMatrix4fv(programInfo.u_textureMatrix, false, textureMatrix);
+        //阴影信息
+        gl.uniform1f(programInfo.u_shadow_bias, shadowMap.bias);
+        gl.uniformMatrix4fv(programInfo.u_textureMatrix, false, shadowMap.textureMatrix);
 
         let projMtx = mat4.create();
         mat4.perspective(projMtx, Math.PI / 3, width / height, 0.5, 1000);
