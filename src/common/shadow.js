@@ -127,7 +127,7 @@ export class ShadowMap {
         this.targetPos = targetPos;
 
         let projMtx = mat4.create();
-        mat4.perspective(projMtx, Math.PI / 3, this.width / this.height, 0.1, 200);
+        mat4.perspective(projMtx, Math.PI / 3, this.width / this.height, 0.1, 1000);
         const viewMtx = mat4.lookAt(mat4.create(), this.lightPosition, this.targetPos, [0, 0, 1]);
 
         this.gl.useProgram(this.program);

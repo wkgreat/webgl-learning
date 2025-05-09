@@ -73,6 +73,10 @@
             "describe": "阴影"
         },
         {
+            "name": "demo19",
+            "describe": "线流光效果"
+        },
+        {
             "name": "tinyearth",
             "describe": "三维地球"
         }

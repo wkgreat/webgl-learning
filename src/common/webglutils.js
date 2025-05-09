@@ -260,7 +260,7 @@ export function drawLine(gl, programInfo, line) {
         gl.enableVertexAttribArray(programInfo.a_color);
     }
 
-    gl.drawArrays(gl.LINES, 0, line.nvertices);
+    gl.drawArrays(line.type, 0, line.nvertices);
 
 }
 
@@ -773,7 +773,7 @@ export function createConeAtOrigin(gl, radius = 1, height = 1, hseg = 10, vseg =
  * @param {array} points
  * @param {array} color  
 */
-export function createLineMesh(gl, points, color) {
+export function createLineMesh(gl, points, color, linetype = gl.LINES) {
 
     const nvertices = points.length / 3;
     const colors = [];
@@ -786,7 +786,7 @@ export function createLineMesh(gl, points, color) {
     }
 
     return {
-        type: gl.LINES,
+        type: linetype,
         hasIndices: false,
         nvertices: nvertices,
         verticeSize: 3,
