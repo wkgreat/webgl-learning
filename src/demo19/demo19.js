@@ -16,7 +16,7 @@ function main() {
         canvas.width = canvas.clientWidth;
         height = canvas.height;
         width = canvas.width;
-        const gl = canvas.getContext("webgl");
+        const gl = canvas.getContext("webgl", { alpha: true });
         window.addEventListener('resize', () => {
             canvas.height = canvas.clientHeight;
             canvas.width = canvas.clientWidth;
@@ -51,7 +51,6 @@ function calFlowLineWeight(flowLinePositions) {
 }
 
 function parseRoadsGeoJson2Mesh() {
-    console.log(roadsGeoJson);
     const lines = [];
     const points = [];
     const features = roadsGeoJson.features;
@@ -80,7 +79,7 @@ function parseRoadsGeoJson2Mesh() {
         const positions = new Float32Array(line);
         const nvertices = positions.length / 3;
         const basecolors = [];
-        const color = [Math.random(), Math.random(), Math.random(), 1.0];
+        const color = [Math.random(), Math.random(), Math.random(), 0.2];
         for (let i = 0; i < nvertices; ++i) {
             basecolors.push(...color);
         }
@@ -134,13 +133,12 @@ function drawFlowLine(gl, programInfo, line) {
 
 function glConfig(gl) {
     /*清理及配置*/
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clearDepth(1.0);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
     gl.depthFunc(gl.LEQUAL);
     gl.viewport(0, 0, width, height);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 }
 
 /**
