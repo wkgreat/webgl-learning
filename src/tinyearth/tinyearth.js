@@ -107,7 +107,7 @@ async function draw(gl, canvas) {
         let dt = Math.trunc((t - lastFrameT));
         timer.addTime(dt);
         const currentTime = timer.getDate();
-        console.log(currentTime);
+
         const sunPos = getSunPositionECEF(currentTime);
 
         gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
