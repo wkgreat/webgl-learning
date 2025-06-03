@@ -213,7 +213,7 @@ async function draw(gl) {
         mat4.rotateZ(modelMtx, modelMtx, a);
         gl.uniformMatrix4fv(modelMtxLoc, false, modelMtx); // 设置模型矩阵
 
-        gl.drawArrays(gl.TRIANGLES, 0, vertices.length); //使用drawElements方法
+        gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 6); //使用drawElements方法
         requestAnimationFrame(dynamicDraw);
     }
 

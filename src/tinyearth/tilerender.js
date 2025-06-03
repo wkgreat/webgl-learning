@@ -146,7 +146,7 @@ export function drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera
     gl.uniformMatrix4fv(programInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
     gl.uniformMatrix4fv(programInfo.u_projMtx, false, projMtx);
 
-    gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.numElements);
+    gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.numElements / 8);
 }
 
 class TileProvider {

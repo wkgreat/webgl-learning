@@ -79,7 +79,7 @@ function draw(gl) {
     gl.useProgram(program);
 
     /* 绘制 */
-    gl.drawArrays(gl.TRIANGLES, 0, 4);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
 
 
 }

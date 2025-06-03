@@ -91,7 +91,8 @@ export function createEnvBoxBuffer(gl) {
 
     return {
         verticeBuffer: envboxVerticesBuffer,
-        numElements: envboxVertices.length
+        numElements: envboxVertices.length,
+        count: envboxVertices.length / 6
     }
 }
 
@@ -123,5 +124,5 @@ export function drawEnvBox(gl, envBoxProgramInfo, envBoxBufferInfo, cameraFrom, 
     // world camera position
     gl.uniform3fv(envBoxProgramInfo.u_worldCameraPos, cameraFrom);
 
-    gl.drawArrays(gl.TRIANGLES, 0, envBoxBufferInfo.numElements);
+    gl.drawArrays(gl.TRIANGLES, 0, envBoxBufferInfo.count);
 }

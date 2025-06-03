@@ -156,7 +156,7 @@ async function draw(gl) {
         gl.uniformMatrix4fv(skyboxProgramInfo.u_invProjViewMtx, false, invProjViewMtx);
 
         // 绘制天空盒
-        gl.drawArrays(gl.TRIANGLES, 0, skyboxVertices.length);
+        gl.drawArrays(gl.TRIANGLES, 0, skyboxVertices.length / 3);
 
         //
         requestAnimationFrame(dynamicDraw);

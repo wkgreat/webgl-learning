@@ -89,7 +89,12 @@ function draw_mesh(gl, program, buffer, textureBuffer, meshes) {
 
         }
 
-        gl.drawArrays(gl.TRIANGLES, 0, mesh.vertices.length);
+        gl.drawArrays(gl.TRIANGLES, 0, mesh.vertices.length / 8);
+
+        const error = gl.getError();
+        if (error !== gl.NO_ERROR) {
+            console.error('WebGL error code:', error, "length: ", mesh.vertices.length / 3);
+        }
 
     }
 }

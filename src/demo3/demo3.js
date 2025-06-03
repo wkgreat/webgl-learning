@@ -81,7 +81,7 @@ function draw(gl) {
         gl.uniform4fv(colorUniformLocation, [Math.random(), Math.random(), Math.random(), 1.0]);
 
         /* 绘制 */
-        gl.drawArrays(gl.TRIANGLES, 0, 4);
+        gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 4);
 
     }
 

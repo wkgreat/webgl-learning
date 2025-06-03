@@ -326,6 +326,6 @@ export function drawPointCloud(gl, programInfo, pointcloud) {
         gl.enableVertexAttribArray(programInfo.a_size);
     }
 
-    gl.drawArrays(gl.POINTS, 0, pointcloud.npoints);
+    gl.drawArrays(gl.POINTS, 0, pointcloud.npoints); //@TODO @FIXME mac下报错 count不对
 
 }

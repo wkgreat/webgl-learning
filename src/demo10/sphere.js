@@ -44,7 +44,8 @@ export function createSphereBuffer(gl) {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     return {
         buffer: buffer,
-        numElements: 0
+        numElements: 0,
+        count: 0
     };
 }
 
@@ -57,6 +58,7 @@ export function setSphereBufferData(gl, bufferInfo, data) {
     gl.bindBuffer(gl.ARRAY_BUFFER, bufferInfo.buffer);
     gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
     bufferInfo.numElements = data.length;
+    bufferInfo.count = data.length / 8;
 }
 
 /**
@@ -77,6 +79,6 @@ export function drawSphere(gl, programInfo, bufferInfo, modelMtx, viewMtx, projM
 
     gl.uniform4fv(programInfo.u_color, color);
 
-    gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.numElements);
+    gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.count);
 
 }

@@ -55,7 +55,8 @@ export function createSkyBoxBuffer(gl) {
 
     return {
         verticeBuffer: skyboxVerticesBuffer,
-        numElements: skyboxVertices.length
+        numElements: skyboxVertices.length,
+        count: skyboxVertices.length / 3
     };
 }
 
@@ -79,5 +80,5 @@ export function drawSkybox(gl, skyboxProgramInfo, skyBoxBufferInfo, cameraFrom, 
     // World Camera Position
     gl.uniform3fv(skyboxProgramInfo.u_worldCameraPos, cameraFrom);
 
-    gl.drawArrays(gl.TRIANGLES, 0, skyBoxBufferInfo.numElements);
+    gl.drawArrays(gl.TRIANGLES, 0, skyBoxBufferInfo.count);
 }
