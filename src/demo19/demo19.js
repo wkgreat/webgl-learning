@@ -167,6 +167,8 @@ export function createFlowLineProgram(gl) {
 
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
         console.error('Program failed to link:', gl.getProgramInfoLog(program));
+        console.error('Vert Shader: ', gl.getShaderInfoLog(vertShader));
+        console.error('Frag Shader: ', gl.getShaderInfoLog(fragShader));
     }
 
     return {

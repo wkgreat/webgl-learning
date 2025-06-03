@@ -1,6 +1,7 @@
 import proj4 from "proj4";
 import { loadImage } from "../common/imageutils";
 import { EPSG_3857 } from "./proj";
+import { vec3 } from "gl-matrix";
 
 const XLIMIT = [-20037508.3427892, 20037508.3427892];
 const YLIMIT = [-20037508.3427892, 20037508.3427892];
@@ -111,22 +112,36 @@ export class TileMesher {
         };
     }
 
+    static normalize(x, y, z) {
+        let p = vec3.fromValues(x, y, z);
+        vec3.normalize(p, p);
+        return [p[0], p[1], p[2]];
+    }
+
     static toMeshRec(posExt, texExt, curlevel, level, targetProj, vertices) {
 
         if (curlevel == level) {
             let p = proj4(EPSG_3857, targetProj, [posExt[0], posExt[1], 0]);
-            vertices.push(p[0], p[1], p[2], texExt[0], texExt[1], Math.random(), Math.random(), Math.random());
+            let n = this.normalize(p[0], p[1], p[2]);
+            vertices.push(p[0], p[1], p[2], texExt[0], texExt[1], n[0], n[1], n[2]);
             p = proj4(EPSG_3857, targetProj, [posExt[2], posExt[3], 0]);
-            vertices.push(p[0], p[1], p[2], texExt[2], texExt[3], Math.random(), Math.random(), Math.random());
+            n = this.normalize(p[0], p[1], p[2]);
+            vertices.push(p[0], p[1], p[2], texExt[2], texExt[3], n[0], n[1], n[2]);
             p = proj4(EPSG_3857, targetProj, [posExt[0], posExt[3], 0]);
-            vertices.push(p[0], p[1], p[2], texExt[0], texExt[3], Math.random(), Math.random(), Math.random());
+            n = this.normalize(p[0], p[1], p[2]);
+            vertices.push(p[0], p[1], p[2], texExt[0], texExt[3], n[0], n[1], n[2]);
 
             p = proj4(EPSG_3857, targetProj, [posExt[0], posExt[1], 0]);
-            vertices.push(p[0], p[1], p[2], texExt[0], texExt[1], Math.random(), Math.random(), Math.random());
+            n = this.normalize(p[0], p[1], p[2]);
+            vertices.push(p[0], p[1], p[2], texExt[0], texExt[1], n[0], n[1], n[2]);
             p = proj4(EPSG_3857, targetProj, [posExt[2], posExt[1], 0]);
-            vertices.push(p[0], p[1], p[2], texExt[2], texExt[1], Math.random(), Math.random(), Math.random());
+            n = this.normalize(p[0], p[1], p[2]);
+            vertices.push(p[0], p[1], p[2], texExt[2], texExt[1], n[0], n[1], n[2]);
             p = proj4(EPSG_3857, targetProj, [posExt[2], posExt[3], 0]);
-            vertices.push(p[0], p[1], p[2], texExt[2], texExt[3], Math.random(), Math.random(), Math.random());
+            n = this.normalize(p[0], p[1], p[2]);
+            vertices.push(p[0], p[1], p[2], texExt[2], texExt[3], n[0], n[1], n[2]);
+
+
         } else if (curlevel < level) {
             const newPosExt = [];
             const newTexExt = [];

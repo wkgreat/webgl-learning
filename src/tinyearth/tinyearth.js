@@ -6,6 +6,7 @@ import { mat4 } from "gl-matrix";
 import Camera, { CameraMouseControl } from "./camera";
 import proj4 from "proj4";
 import Projection from "./projection";
+import { getSunPositionECEF } from "./sun";
 
 let width = 1000;
 let height = 500;
@@ -78,19 +79,49 @@ async function draw(gl, canvas) {
         meshes.push(TileMesher.toMesh(tile, 4, EPSG_4978));
     });
 
-    function dynamicDraw() {
+    const sunPos = getSunPositionECEF();
+    gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
+    gl.uniform4f(programInfo.light.color, 1.0, 1.0, 1.0, 1.0);
+    gl.uniform3f(programInfo.camera.position, cameraFrom[0], cameraFrom[1], cameraFrom[2]);
+    gl.uniform4f(programInfo.material.ambient, 0.1, 0.1, 0.1, 1.0);
+    gl.uniform4f(programInfo.material.diffuse, 1.0, 1.0, 1.0, 1.0);
+    gl.uniform4f(programInfo.material.specular, 1.0, 1.0, 1.0, 1.0);
+    gl.uniform4f(programInfo.material.emission, 0.0, 0.0, 0.0, 1.0);
+    gl.uniform1f(programInfo.material.shininess, 1000);
+
+    const startTime = new Date("2025-06-03T12:00:00Z")
+    let currentTime = startTime;
+    const multipler = 1000 * 1;
+
+    let currentFrameT = new Date().getTime();
+    let lastFrameT = 0;
+
+    function dynamicDraw(t) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         projection.setAspect(width / height);
         const projMtx = projection.perspective();
+
+        currentFrameT = t;
+        let dt = Math.trunc((t - lastFrameT) * multipler);
+        currentTime = new Date(currentTime.getTime() + dt);
+        const sunPos = getSunPositionECEF(currentTime);
+        console.log(currentTime);
+
+
+        gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
+
+
         for (let mesh of meshes) {
             drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera, projMtx);
         }
+
+        lastFrameT = currentFrameT;
         requestAnimationFrame(dynamicDraw);
     }
 
-    dynamicDraw();
+    requestAnimationFrame(dynamicDraw);
 
 
 
