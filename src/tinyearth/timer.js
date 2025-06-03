@@ -75,18 +75,18 @@ export function addTimeHelper(timer, root) {
     });
 
     if (timer.running) {
-        startButton.innerText = "停止计时器";
+        startButton.innerText = "⏹停止计时器";
     } else {
-        startButton.innerText = "开始计时器";
+        startButton.innerText = "▶️开始计时器";
     }
 
     startButton.addEventListener('click', () => {
         if (timer.running) {
             timer.stop();
-            startButton.innerText = "开始计时器";
+            startButton.innerText = "▶️开始计时器";
         } else {
             timer.start();
-            startButton.innerText = "停止计时器";
+            startButton.innerText = "⏹停止计时器";
         }
     });
 
