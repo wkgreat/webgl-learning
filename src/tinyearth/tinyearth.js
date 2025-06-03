@@ -7,6 +7,7 @@ import Camera, { CameraMouseControl } from "./camera";
 import proj4 from "proj4";
 import Projection from "./projection";
 import { getSunPositionECEF } from "./sun";
+import Timer, { addTimeHelper } from "./timer";
 
 let width = 1000;
 let height = 500;
@@ -67,8 +68,6 @@ async function draw(gl, canvas) {
 
     const projection = new Projection(Math.PI / 3, width / height, 0.1, 1E10);
 
-    console.log(projection.getViewFrustum());
-
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -87,13 +86,14 @@ async function draw(gl, canvas) {
     gl.uniform4f(programInfo.material.diffuse, 1.0, 1.0, 1.0, 1.0);
     gl.uniform4f(programInfo.material.specular, 1.0, 1.0, 1.0, 1.0);
     gl.uniform4f(programInfo.material.emission, 0.0, 0.0, 0.0, 1.0);
-    gl.uniform1f(programInfo.material.shininess, 1000);
+    gl.uniform1f(programInfo.material.shininess, 1000);;
 
-    const startTime = new Date("2025-06-03T12:00:00Z")
-    let currentTime = startTime;
-    const multipler = 1000 * 1;
+    const timer = new Timer(Date.now());
+    timer.setMultipler(10000);
+    timer.start();
+    addTimeHelper(timer, document.getElementById("helper"));
 
-    let currentFrameT = new Date().getTime();
+    let currentFrameT = 0;
     let lastFrameT = 0;
 
     function dynamicDraw(t) {
@@ -104,14 +104,13 @@ async function draw(gl, canvas) {
         const projMtx = projection.perspective();
 
         currentFrameT = t;
-        let dt = Math.trunc((t - lastFrameT) * multipler);
-        currentTime = new Date(currentTime.getTime() + dt);
-        const sunPos = getSunPositionECEF(currentTime);
+        let dt = Math.trunc((t - lastFrameT));
+        timer.addTime(dt);
+        const currentTime = timer.getDate();
         console.log(currentTime);
-
+        const sunPos = getSunPositionECEF(currentTime);
 
         gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
-
 
         for (let mesh of meshes) {
             drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera, projMtx);

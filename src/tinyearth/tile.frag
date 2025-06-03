@@ -37,7 +37,7 @@ vec4 shadeColorWithTexture(Material material, Light light, vec4 texcolor, vec4 a
 
     vec4 ambientColor = material.ambient * ambient;
     vec4 diffuseColor = mix(material.diffuse, texcolor, diffuseAlpha) * light.color * max(dot(normal, vlgt), 0.05);
-    vec4 specularColor = material.specular * light.color * pow(max(dot(normal, vhalf), 0.0), material.shininess);
+    // vec4 specularColor = material.specular * light.color * pow(max(dot(normal, vhalf), 0.0), material.shininess);
 
     vec4 color = ambientColor + diffuseColor + material.emission;
     return clamp(color, 0.0, 1.0);
