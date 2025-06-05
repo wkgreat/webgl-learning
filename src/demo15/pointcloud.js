@@ -261,37 +261,36 @@ export function createPointCloudPorgram(gl) {
  * @param {WebGL2RenderingContext} gl
  * @param {PointCloudMeshType} pointCloudMesh  
 */
-export function PointCloudSetData(gl, programInfo, pointCloudMesh, bufferInfo = {
-    positionBuffer: gl.createBuffer(),
-    colorBuffer: gl.createBuffer(),
-    sizeBuffer: gl.createBuffer()
-}) {
+export function PointCloudSetData(gl, programInfo, pointCloudMesh) {
 
     gl.useProgram(programInfo.program);
 
-    pointCloudMesh.bufferInfo = bufferInfo;
+    pointCloudMesh.bufferInfo = {};
 
-    const positionBuffer = bufferInfo.positionBuffer;
+    const positionBuffer = gl.createBuffer();
+    pointCloudMesh.bufferInfo.positionBuffer = positionBuffer;
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pointCloudMesh.positions), gl.STATIC_DRAW);
 
     if (pointCloudMesh.hasColor) {
-        const colorBuffer = bufferInfo.colorBuffer;
+        const colorBuffer = gl.createBuffer();
+        pointCloudMesh.bufferInfo.colorBuffer = colorBuffer;
         gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pointCloudMesh.colors), gl.STATIC_DRAW);
-        gl.uniform1i(programInfo.u_hasColor, true);
+        gl.uniform1i(programInfo.u_hasColor, 1);
     } else {
-        gl.uniform1i(programInfo.u_hasColor, false);
+        gl.uniform1i(programInfo.u_hasColor, 0);
         gl.uniform4fv(programInfo.u_defaultColor, pointCloudMesh.defaultColor);
     }
 
     if (pointCloudMesh.hasSize) {
-        const sizeBuffer = bufferInfo.sizeBuffer;
+        const sizeBuffer = gl.createBuffer();
+        pointCloudMesh.bufferInfo.sizeBuffer = sizeBuffer;
         gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pointCloudMesh.sizes), gl.STATIC_DRAW);
-        gl.uniform1i(programInfo.u_hasSize, true);
+        gl.uniform1i(programInfo.u_hasSize, 1);
     } else {
-        gl.uniform1i(programInfo.u_hasSize, false);
+        gl.uniform1i(programInfo.u_hasSize, 0);
         gl.uniform1f(programInfo.u_defaultSize, pointCloudMesh.defaultSize);
     }
 
@@ -312,20 +311,20 @@ export function drawPointCloud(gl, programInfo, pointcloud) {
         gl.enableVertexAttribArray(programInfo.a_position);
     }
 
-    if (programInfo.a_color >= 0) {
+    if (programInfo.a_color >= 0 && pointcloud.hasColor) {
         const colorBuffer = pointcloud.bufferInfo.colorBuffer;
         gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
         gl.vertexAttribPointer(programInfo.a_color, 4, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(programInfo.a_color);
     }
 
-    if (programInfo.a_size >= 0) {
+    if (programInfo.a_size >= 0 && pointcloud.hasSize) {
         const sizeBuffer = pointcloud.bufferInfo.sizeBuffer;
         gl.bindBuffer(gl.ARRAY_BUFFER, sizeBuffer);
         gl.vertexAttribPointer(programInfo.a_size, 1, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(programInfo.a_size);
     }
 
-    gl.drawArrays(gl.POINTS, 0, pointcloud.npoints); //@TODO @FIXME mac下报错 count不对
+    gl.drawArrays(gl.POINTS, 0, pointcloud.npoints);
 
 }
