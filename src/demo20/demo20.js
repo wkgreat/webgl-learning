@@ -245,6 +245,30 @@ function materialHelper(gl, program, material) {
     });
 }
 
+function outlineHelper(gl, program, outline) {
+    gl.useProgram(program.program);
+    const outlineFactorInput = document.getElementById("outline-factor");
+    outlineFactorInput.value = outline.getFactor();
+    gl.uniform1f(program.u_outline_factor, outline.getFactor());
+    outlineFactorInput.addEventListener("input", (e) => {
+        let v = e.target.value
+        outline.setFactor(v);
+        gl.useProgram(program.program);
+        gl.uniform1f(program.u_outline_factor, outline.getFactor());
+    });
+
+    const outlineColorInput = document.getElementById("outline-color");
+    outlineColorInput.value = color01RGB2Hex(outline.getColor().slice(0, 3));
+    gl.uniform4fv(program.u_color, outline.getColor());
+    outlineColorInput.addEventListener("input", (e) => {
+        let hex = e.target.value
+        const rgb = color01Hex2RGB(hex);
+        outline.setColor([...rgb, 1]);
+        gl.useProgram(program.program);
+        gl.uniform4fv(program.u_color, outline.getColor());
+    });
+}
+
 class Outline {
     color = [0.0, 1.0, 1.0, 1.0];
     factor = 0.2;
@@ -351,6 +375,7 @@ async function draw(gl, canvas) {
 
     // 边框属性
     const outline = new Outline();
+    outlineHelper(gl, singleColorProgramInfo, outline);
 
     //启动模板缓冲
     gl.enable(gl.STENCIL_TEST);
