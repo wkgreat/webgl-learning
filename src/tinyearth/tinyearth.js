@@ -89,7 +89,7 @@ async function draw(gl, canvas) {
     gl.uniform1f(programInfo.material.shininess, 1000);;
 
     const timer = new Timer(Date.now());
-    timer.setMultipler(10000);
+    timer.setMultipler(1);
     timer.start();
     addTimeHelper(timer, document.getElementById("helper"));
 

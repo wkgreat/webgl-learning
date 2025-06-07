@@ -77,6 +77,10 @@
             "describe": "线流光效果"
         },
         {
+            "name": "demo20",
+            "describe": "模板-物体边框"
+        },
+        {
             "name": "tinyearth",
             "describe": "三维地球"
         }
