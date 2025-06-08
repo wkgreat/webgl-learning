@@ -81,6 +81,10 @@
             "describe": "模板-物体边框"
         },
         {
+            "name": "demo21",
+            "describe": "物体线框（wireframe）"
+        },
+        {
             "name": "tinyearth",
             "describe": "三维地球"
         }

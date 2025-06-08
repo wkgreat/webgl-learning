@@ -1,0 +1,33 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+#demo21-canvas {
+    height: 100%;
+    width: 100%;
+}
+
+#describe-div {
+    position: fixed;
+    left: 0px;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+#helper {
+    position: fixed;
+    right: 0px;
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 1px;
+    text-align: left;
+}
