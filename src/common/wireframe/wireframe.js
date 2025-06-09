@@ -59,10 +59,8 @@ export default class WireFrame {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
-        console.log(positions);
-
         const indices = [];
-        console.log(indices);
+
         for (let i = 0; i < this.nvertices; i += 3) {
             indices.push(i, i + 1, i + 1, i + 2, i + 2, i);
         }
@@ -91,9 +89,7 @@ export default class WireFrame {
         this.shader.setUniformMatrix4f(this.u_viewMtx, viewMtx);
         this.shader.setUniformMatrix4f(this.u_projMtx, projMtx);
 
-        console.log(this.nindices);
         gl.drawElements(gl.LINES, this.nindices, gl.UNSIGNED_SHORT, 0);
-        // gl.drawArrays(gl.TRIANGLES, 0, this.nvertices);
 
     }
 

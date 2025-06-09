@@ -4,6 +4,8 @@ import fragSource from "./frag.glsl"
 import { mat4 } from "gl-matrix";
 import { ObjMesh, ObjProvider } from "../common/objreader";
 import GLProgram from "./glprogram";
+import WireFrame from "../common/wireframe/wireframe";
+import { addWireframeHelper, createWireframeInfo } from "../common/helpers/wireframeHelper";
 
 let width = 1000;
 let height = 500;
@@ -193,6 +195,11 @@ async function draw(gl) {
     //light
     lightSettings(gl, program);
 
+    const wireframe = new WireFrame(gl);
+    const wireframeInfo = createWireframeInfo(wireframe, false, [1.0, 0.0, 0.0, 1.0]);
+    const root = document.getElementById("helper");
+    addWireframeHelper(root, wireframeInfo);
+
     // 绘制，每帧使物体旋转一定角度
     let a = 0;
     function dynamicDraw() {
@@ -200,6 +207,8 @@ async function draw(gl) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.useProgram(program.program);
 
         //更新projection
         const projMtx = mat4.create();
@@ -221,6 +230,21 @@ async function draw(gl) {
 
         //绘制每个meshes
         draw_mesh(gl, program, verticesBuffer, textureBuffer, meshes);
+
+        if (wireframeInfo.show) {
+            wireframe.shader.use();
+
+            wireframe.shader.setUniformVec4f("u_color", wireframeInfo.color);
+
+            for (let mesh of meshes) {
+                wireframe.wireframeSetData(mesh.vertices, 3, 8, 0);
+                wireframe.draw(modelMtx, viewMtx, projMtx);
+            }
+
+        }
+
+
+
 
         requestAnimationFrame(dynamicDraw);
     }
