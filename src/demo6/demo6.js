@@ -6,6 +6,7 @@ import { ObjMesh, ObjProvider } from "../common/objreader";
 import GLProgram from "./glprogram";
 import WireFrame from "../common/wireframe/wireframe";
 import { addWireframeHelper, createWireframeInfo } from "../common/helpers/wireframeHelper";
+import Camera, { CameraMouseControl } from "../common/camera";
 
 let width = 1000;
 let height = 500;
@@ -132,7 +133,7 @@ function lightSettings(gl, program) {
 /**
  * @param {WebGLRenderingContext} gl
 */
-async function draw(gl) {
+async function draw(gl, canvas) {
 
     // 配置程序
     // const program = genProgram(gl);
@@ -171,10 +172,15 @@ async function draw(gl) {
     gl.uniformMatrix4fv(modelMtxLoc, false, modelMtx);
 
     /* view (camera) matrix*/
-    const viewMtx = mat4.create();
-    mat4.lookAt(viewMtx, [-100, 100, 100], [0, 0, 0], [0, 1, 0]);
-    const viewMtxMtxLoc = gl.getUniformLocation(program.program, "viewMtx");
-    gl.uniformMatrix4fv(viewMtxMtxLoc, false, viewMtx);
+    // const viewMtx = mat4.create();
+    // mat4.lookAt(viewMtx, [-100, 100, 100], [0, 0, 0], [0, 1, 0]);
+    const viewMtxLoc = gl.getUniformLocation(program.program, "viewMtx");
+    // gl.uniformMatrix4fv(viewMtxMtxLoc, false, viewMtx);
+
+    const camera = new Camera([-100, 100, 100], [0, 0, 0], [0, 1, 0]);
+    gl.uniformMatrix4fv(viewMtxLoc, false, camera.getMatrix().viewMtx);
+    const cameraControl = new CameraMouseControl(camera, canvas);
+    cameraControl.enable();
 
     /* projection matrix */
     const projMtx = mat4.create();
@@ -216,14 +222,14 @@ async function draw(gl) {
         const projMtxMtxLoc = gl.getUniformLocation(program.program, "projMtx");
         gl.uniformMatrix4fv(projMtxMtxLoc, false, projMtx);
 
-        // 加个小角度
-        a = (a + Math.PI / (180 * 2)) % (Math.PI * 2);
+        //model
         modelMtx = mat4.create();
-        mat4.rotateY(modelMtx, modelMtx, a);
-        gl.uniformMatrix4fv(modelMtxLoc, false, modelMtx); // 设置模型矩阵
+
+        //view
+        gl.uniformMatrix4fv(viewMtxLoc, false, camera.getMatrix().viewMtx);
 
         // 更新normalModelViewMtx
-        mat4.multiply(normalModelViewMtx, viewMtx, modelMtx);
+        mat4.multiply(normalModelViewMtx, camera.getMatrix().viewMtx, modelMtx);
         mat4.invert(normalModelViewMtx, normalModelViewMtx);
         mat4.transpose(normalModelViewMtx, normalModelViewMtx);
         gl.uniformMatrix4fv(normalModelViewMtxLoc, false, normalModelViewMtx);
@@ -238,7 +244,7 @@ async function draw(gl) {
 
             for (let mesh of meshes) {
                 wireframe.wireframeSetData(mesh.vertices, 3, 8, 0);
-                wireframe.draw(modelMtx, viewMtx, projMtx);
+                wireframe.draw(modelMtx, camera.getMatrix().viewMtx, projMtx);
             }
 
         }

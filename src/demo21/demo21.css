@@ -1,3 +1,5 @@
+@import "../demo.css";
+
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -7,12 +9,6 @@ body {
 #demo21-canvas {
     height: 100%;
     width: 100%;
-}
-
-#describe-div {
-    position: fixed;
-    left: 0px;
-    background-color: rgba(255, 255, 255, 0.5);
 }
 
 #helper {
