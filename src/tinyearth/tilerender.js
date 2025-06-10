@@ -1,9 +1,10 @@
 import tileVertSource from "./tile.vert"
 import tileFragSource from "./tile.frag"
-import { Tile, TileMesher } from "./maptiler";
+import { Tile, TileMesher, TileSource } from "./maptiler";
 import { mat4 } from "gl-matrix";
 import Camera from "./camera";
-import { EPSG_4978 } from "./proj";
+import { EPSG_4978, EPSG_4326, EARTH_RADIUS } from "./proj";
+import proj4 from "proj4";
 
 /**
  * @param {WebGL2RenderingContext} gl 
@@ -149,12 +150,84 @@ export function drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera
     gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.numElements / 8);
 }
 
-class TileProvider {
-    height = 0;
-    source = null;
 
-    getFrameTiles() {
-        return null;
+export class TileProvider {
+
+    url = "";
+    camera = null;
+    curlevel = 0;
+    whichList = 0;
+    meshes0 = [];
+    meshes1 = [];
+    tileSource = null;
+    callback = this.provideCallbackGen();
+
+    /**
+     * @param {Camera} camera 
+    */
+    constructor(url, camera) {
+        this.url = url;
+        this.tileSource = new TileSource(url);
+        this.camera = camera;
+        this.callback(camera);
+        camera.addOnchangeEeventListener(this.callback);
+    }
+
+    switchList() {
+        if (this.whichList === 0) {
+            this.whichList = 1;
+        } else {
+            this.whichList = 0;
+        }
+    }
+
+    getMeshes() {
+        if (this.whichList === 0) {
+            return this.meshes0;
+        } else {
+            return this.meshes1;
+        }
+    }
+
+
+    provideCallbackGen() {
+
+        let that = this;
+
+        /**
+         * @param {Camera} camera 
+        */
+        function provideCallback(camera) {
+            const tileSize = 256;
+            let pos = proj4(EPSG_4978, EPSG_4326, Array.from(camera.from.slice(0, 3)));
+            let height = pos[2];
+            const initialResolution = 2 * Math.PI * EARTH_RADIUS / tileSize;
+
+            const groundResolution = height * 2 / tileSize;
+
+            const zoom = Math.log2(initialResolution / groundResolution);
+            const level = Math.ceil(zoom);
+            console.log("LEVEL:", level);
+            if (that.curlevel !== level) {
+                that.curlevel = level;
+                that.meshes = [];
+
+                that.meshes0 = [];
+                that.meshes1 = [];
+                that.switchList();
+
+                that.tileSource.fetchTilesOfLevelAsync(level, (tile) => {
+                    if (that.whichList === 0) {
+                        that.meshes0.push(TileMesher.toMesh(tile, 4, EPSG_4978));
+                    } else {
+                        that.meshes1.push(TileMesher.toMesh(tile, 4, EPSG_4978));
+                    }
+                });
+            }
+        }
+
+
+        return provideCallback;
     }
 
 }

@@ -1,7 +1,7 @@
 import "./tinyearth.css"
 import { TileMesher, TileSource } from "./maptiler";
-import { createTileProgram, createTileProgramBuffer, drawTileMesh } from "./tilerender";
-import { EPSG_4326, EPSG_4978 } from "./proj";
+import { createTileProgram, createTileProgramBuffer, drawTileMesh, TileProvider } from "./tilerender";
+import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj";
 import { mat4 } from "gl-matrix";
 import Camera, { CameraMouseControl } from "./camera";
 import proj4 from "proj4";
@@ -54,9 +54,9 @@ async function draw(gl, canvas) {
 
     const programInfo = createTileProgram(gl);
     const bufferInfo = createTileProgramBuffer(gl);
-    const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+    // const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
     // const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-    const tileSource = new TileSource(url);
+    // const tileSource = new TileSource(url);
 
     const modelMtx = mat4.create();
     const cameraFrom = proj4(EPSG_4326, EPSG_4978, [117, 32, 1E7]);
@@ -74,9 +74,13 @@ async function draw(gl, canvas) {
 
     const meshes = [];
 
-    tileSource.fetchTilesOfLevelAsync(3, (tile) => {
-        meshes.push(TileMesher.toMesh(tile, 4, EPSG_4978));
-    });
+    const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+    // const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    const tileProvider = new TileProvider(url, camera);
+
+    // tileSource.fetchTilesOfLevelAsync(3, (tile) => {
+    //     meshes.push(TileMesher.toMesh(tile, 4, EPSG_4978));
+    // });
 
     const sunPos = getSunPositionECEF();
     gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
@@ -112,7 +116,7 @@ async function draw(gl, canvas) {
 
         gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
 
-        for (let mesh of meshes) {
+        for (let mesh of tileProvider.getMeshes()) {
             drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera, projMtx);
         }
 

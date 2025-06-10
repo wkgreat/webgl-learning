@@ -1,4 +1,6 @@
 import { vec3, vec4, mat4 } from "gl-matrix";
+import proj4 from "proj4";
+import { EPSG_4326, EPSG_4978 } from "./proj";
 
 /**
  * @class Camera
@@ -15,6 +17,7 @@ class Camera {
     up = vec4.fromValues(0, 1, 0, 0);
     viewMtx = mat4.create();
     invViewMtx = mat4.create();
+    changeFunc = [];
 
     constructor(from, to, up) {
         this.setFrom(from);
@@ -79,6 +82,9 @@ class Camera {
         vec4.transformMat4(this.from, viewFrom4, this.invViewMtx);
 
         this._look();
+        for (let f of this.changeFunc) {
+            f(this);
+        }
     }
 
     /**
@@ -87,10 +93,19 @@ class Camera {
     */
     zoom(f) {
         const d = vec4.create();
-        vec4.sub(d, this.to, this.from);
-        vec4.multiply(d, d, [f, f, f, f]);
+        const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, Array.from(this.from.slice(0, 3)));
+        const toLonLatAlt = [fromLonLatAlt[0], fromLonLatAlt[1], 0];
+        const to = proj4(EPSG_4326, EPSG_4978, toLonLatAlt);
+        const toVec4 = vec4.fromValues(to[0], to[1], to[2], 0);
+        vec4.sub(d, toVec4, this.from);
+        const factor = Math.sign(f) * 0.1;
+        vec4.multiply(d, d, [factor, factor, factor, factor]);
         vec4.add(this.from, this.from, d);
         this._look();
+
+        for (let f of this.changeFunc) {
+            f(this);
+        }
     }
 
     /**
@@ -112,8 +127,17 @@ class Camera {
         vec4.transformMat4(this.to, viewTo4, this.invViewMtx);
 
         this._look();
+        for (let f of this.changeFunc) {
+            f(this);
+        }
 
     }
+
+    addOnchangeEeventListener(f) {
+        this.changeFunc.push(f);
+    }
+
+
 
 };
 
