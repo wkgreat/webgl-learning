@@ -1,8 +1,8 @@
 import { vec3, vec4, mat4, mat3 } from "gl-matrix";
 import "./demo10.css"
-import { createSphereBuffer, createSphereProgram, drawSphere, setSphereBufferData } from "./sphere";
-import { ObjProvider } from "../common/objreader";
-import Camera, { CameraMouseControl } from "./camera";
+import { createSphereBuffer, createSphereProgram, drawSphere, setSphereBufferData } from "./sphere.js";
+import { ObjProvider } from "../common/objreader.js";
+import Camera, { CameraMouseControl } from "./camera.js";
 
 const width = 1000;
 const height = 500;

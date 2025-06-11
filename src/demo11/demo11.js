@@ -1,9 +1,9 @@
 import { vec3, vec4, mat4, mat3 } from "gl-matrix";
 import "./demo11.css"
-import Camera, { CameraMouseControl } from "../common/camera";
+import Camera, { CameraMouseControl } from "../common/camera.js";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createRectangle, drawMesh, meshBindBuffer } from "../common/webglutils";
+import { createChessBoardTexture, createRectangle, drawMesh, meshBindBuffer } from "../common/webglutils.js";
 
 const width = 1000;
 const height = 500;

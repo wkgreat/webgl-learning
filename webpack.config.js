@@ -1,12 +1,14 @@
-const path = require('path');
-const fs = require('fs');
-const unzipper = require('unzipper');
+import { fileURLToPath } from 'url';
+import path from 'path';
+import fs from 'fs';
+import unzipper from 'unzipper';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import CopyWebpackPlugin from 'copy-webpack-plugin'
+import demos from './demolist.js';
+const demoList = demos.demos;
 
-const webpack = require('webpack');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
-const CopyWebpackPlugin = require('copy-webpack-plugin');
-
-const demoList = require('./demolist.json').demos;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const webpackEntry = {
     app: './src/index.js'
@@ -62,7 +64,7 @@ for (const demo of demoList) {
     }));
 }
 
-module.exports = [{
+export default [{
     mode: 'development',
     context: __dirname,
     entry: webpackEntry,
@@ -70,9 +72,16 @@ module.exports = [{
         filename: '[name].js',
         path: path.resolve(__dirname, 'dist')
     },
+    resolve: {
+        extensions: ['.js', '.json'],
+    },
     devtool: 'eval',
     module: {
         rules: [{
+            test: /\.js$/,
+            loader: 'babel-loader',
+            exclude: /node_modules/,
+        }, , {
             test: /\.css$/,
             exclude: /node_modules/,
             use: ['style-loader', 'css-loader']

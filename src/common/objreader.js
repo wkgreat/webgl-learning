@@ -1,4 +1,4 @@
-import { loadImage } from "./imageutils";
+import { loadImage } from "./imageutils.js";
 
 /**
  * @property {Array} vertices

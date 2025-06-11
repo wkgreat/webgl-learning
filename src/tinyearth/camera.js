@@ -1,6 +1,6 @@
 import { vec3, vec4, mat4 } from "gl-matrix";
 import proj4 from "proj4";
-import { EPSG_4326, EPSG_4978 } from "./proj";
+import { EPSG_4326, EPSG_4978 } from "./proj.js";
 
 /**
  * @class Camera
@@ -12,12 +12,12 @@ import { EPSG_4326, EPSG_4978 } from "./proj";
 */
 class Camera {
 
-    from = vec4.fromValues(1, 1, 1, 1);
-    to = vec4.fromValues(0, 0, 0, 1);
-    up = vec4.fromValues(0, 1, 0, 0);
-    viewMtx = mat4.create();
-    invViewMtx = mat4.create();
-    changeFunc = [];
+    #from = vec4.fromValues(1, 1, 1, 1);
+    #to = vec4.fromValues(0, 0, 0, 1);
+    #up = vec4.fromValues(0, 1, 0, 0);
+    #viewMtx = mat4.create();
+    #invViewMtx = mat4.create();
+    #changeFunc = [];
 
     constructor(from, to, up) {
         this.setFrom(from);
@@ -26,13 +26,13 @@ class Camera {
     }
 
     setFrom(vin) {
-        this.setVector4(this.from, vin);
+        this.setVector4(this.#from, vin);
     }
     setTo(vin) {
-        this.setVector4(this.to, vin);
+        this.setVector4(this.#to, vin);
     }
     setUp(vin) {
-        this.setVector4(this.up, vin);
+        this.setVector4(this.#up, vin);
     }
 
     setVector4(vout, vin) {
@@ -51,15 +51,15 @@ class Camera {
     }
 
     _look() {
-        mat4.lookAt(this.viewMtx, this._vec3(this.from), this._vec3(this.to), this._vec3(this.up));
-        mat4.invert(this.invViewMtx, this.viewMtx);
+        mat4.lookAt(this.#viewMtx, this._vec3(this.#from), this._vec3(this.#to), this._vec3(this.#up));
+        mat4.invert(this.#invViewMtx, this.#viewMtx);
     }
 
     getMatrix() {
         this._look();
         return {
-            viewMtx: this.viewMtx,
-            invViewMtx: this.invViewMtx
+            viewMtx: this.#viewMtx,
+            invViewMtx: this.#invViewMtx
         };
     }
 
@@ -70,8 +70,9 @@ class Camera {
      * @returns {void}
     */
     round(dx, dy) {
-        const viewFrom4 = vec4.transformMat4(vec4.create(), this.from, this.viewMtx);
-        const viewTo4 = vec4.transformMat4(vec4.create(), this.to, this.viewMtx);
+
+        const viewFrom4 = vec4.transformMat4(vec4.create(), this.#from, this.#viewMtx);
+        const viewTo4 = vec4.transformMat4(vec4.create(), this.#to, this.#viewMtx);
         const viewFrom3 = this._vec3(viewFrom4);
         const viewTo3 = this._vec3(viewTo4);
 
@@ -79,10 +80,11 @@ class Camera {
         vec3.rotateX(viewFrom3, viewFrom3, viewTo3, dy); // 绕x轴旋转dy
 
         vec4.set(viewFrom4, viewFrom3[0], viewFrom3[1], viewFrom3[2], 1);
-        vec4.transformMat4(this.from, viewFrom4, this.invViewMtx);
+        vec4.transformMat4(this.#from, viewFrom4, this.#invViewMtx);
 
         this._look();
-        for (let f of this.changeFunc) {
+
+        for (let f of this.#changeFunc) {
             f(this);
         }
     }
@@ -93,17 +95,17 @@ class Camera {
     */
     zoom(f) {
         const d = vec4.create();
-        const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, Array.from(this.from.slice(0, 3)));
-        const toLonLatAlt = [fromLonLatAlt[0], fromLonLatAlt[1], 0];
+        const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, Array.from(this.#from.slice(0, 3)));
+        const toLonLatAlt = [fromLonLatAlt[0], fromLonLatAlt[1], 1];
         const to = proj4(EPSG_4326, EPSG_4978, toLonLatAlt);
-        const toVec4 = vec4.fromValues(to[0], to[1], to[2], 0);
-        vec4.sub(d, toVec4, this.from);
+        const toVec4 = vec4.fromValues(to[0], to[1], to[2], 1);
+        vec4.sub(d, toVec4, this.#from);
         const factor = Math.sign(f) * 0.1;
-        vec4.multiply(d, d, [factor, factor, factor, factor]);
-        vec4.add(this.from, this.from, d);
+        vec4.scale(d, d, factor);
+        vec4.add(this.#from, this.#from, d);
         this._look();
 
-        for (let f of this.changeFunc) {
+        for (let f of this.#changeFunc) {
             f(this);
         }
     }
@@ -114,27 +116,30 @@ class Camera {
      * @param {number} dy y轴方向平移量
     */
     move(dx, dy) {
-
-        const viewFrom4 = vec4.transformMat4(vec4.create(), this.from, this.viewMtx);
-        const viewTo4 = vec4.transformMat4(vec4.create(), this.to, this.viewMtx);
+        const viewFrom4 = vec4.transformMat4(vec4.create(), this.#from, this.#viewMtx);
+        const viewTo4 = vec4.transformMat4(vec4.create(), this.#to, this.#viewMtx);
 
         const mtx = mat4.create();
         mat4.translate(mtx, mtx, [dx, dy, 0]);
         vec4.transformMat4(viewFrom4, viewFrom4, mtx);
         vec4.transformMat4(viewTo4, viewTo4, mtx);
 
-        vec4.transformMat4(this.from, viewFrom4, this.invViewMtx);
-        vec4.transformMat4(this.to, viewTo4, this.invViewMtx);
+        vec4.transformMat4(this.#from, viewFrom4, this.#invViewMtx);
+        vec4.transformMat4(this.#to, viewTo4, this.#invViewMtx);
 
         this._look();
-        for (let f of this.changeFunc) {
+        for (let f of this.#changeFunc) {
             f(this);
         }
 
     }
 
     addOnchangeEeventListener(f) {
-        this.changeFunc.push(f);
+        this.#changeFunc.push(f);
+    }
+
+    getFrom() {
+        return this.#from;
     }
 
 

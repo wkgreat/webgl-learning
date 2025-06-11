@@ -1,4 +1,4 @@
-import { color01Hex2RGB, color01RGB2Hex } from "../material";
+import { color01Hex2RGB, color01RGB2Hex } from "../material.js";
 
 export function createWireframeInfo(wireframe, show, color) {
     return {

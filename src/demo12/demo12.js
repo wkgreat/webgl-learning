@@ -1,10 +1,10 @@
 import { vec3, vec4, mat4, mat3 } from "gl-matrix";
 import "./demo12.css"
 import "../index.css"
-import Camera, { CameraMouseControl } from "../common/camera";
+import Camera, { CameraMouseControl } from "../common/camera.js";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createCone, createConeAtOrigin, createLineMesh, createLineProgram, createPointProgram, createPoints, createRectangle, createSphere, drawLine, drawMesh, drawPoint, lineBindBuffer, meshBindBuffer, pointBindBuffer } from "../common/webglutils";
+import { createChessBoardTexture, createCone, createConeAtOrigin, createLineMesh, createLineProgram, createPointProgram, createPoints, createRectangle, createSphere, drawLine, drawMesh, drawPoint, lineBindBuffer, meshBindBuffer, pointBindBuffer } from "../common/webglutils.js";
 
 const width = 1000;
 const height = 500;

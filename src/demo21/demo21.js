@@ -1,12 +1,12 @@
 import { vec3, vec4, mat4, mat3 } from "gl-matrix";
 import "./demo21.css"
-import Camera, { CameraMouseControl } from "../common/camera";
+import Camera, { CameraMouseControl } from "../common/camera.js";
 import vertSource from "./vert.glsl"
 import fragSource from "./frag.glsl"
-import { createChessBoardTexture, createCone, createLineMesh, createLineProgram, createRectangle, createSphere, drawLine, drawMesh, lineBindBuffer, meshBindBuffer } from "../common/webglutils";
-import { BlinnPhongMaterial, color01Hex2RGB, color01RGB2Hex, colorRGB2Hex } from "../common/material";
-import WireFrame from "../common/wireframe/wireframe";
-import { addWireframeHelper, createWireframeInfo } from "../common/helpers/wireframeHelper";
+import { createChessBoardTexture, createCone, createLineMesh, createLineProgram, createRectangle, createSphere, drawLine, drawMesh, lineBindBuffer, meshBindBuffer } from "../common/webglutils.js";
+import { BlinnPhongMaterial, color01Hex2RGB, color01RGB2Hex, colorRGB2Hex } from "../common/material.js";
+import WireFrame from "../common/wireframe/wireframe.js";
+import { addWireframeHelper, createWireframeInfo } from "../common/helpers/wireframeHelper.js";
 
 let width = 1000;
 let height = 500;

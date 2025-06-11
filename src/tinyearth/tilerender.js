@@ -1,10 +1,11 @@
 import tileVertSource from "./tile.vert"
 import tileFragSource from "./tile.frag"
-import { Tile, TileMesher, TileSource } from "./maptiler";
-import { mat4 } from "gl-matrix";
-import Camera from "./camera";
-import { EPSG_4978, EPSG_4326, EARTH_RADIUS } from "./proj";
+import { Tile, TileMesher, TileSource } from "./maptiler.js";
+import { mat4, vec3, vec4 } from "gl-matrix";
+import Camera from "./camera.js";
+import { EPSG_4978, EPSG_4326, EARTH_RADIUS } from "./proj.js";
 import proj4 from "proj4";
+import Projection from "./projection.js";
 
 /**
  * @param {WebGL2RenderingContext} gl 
@@ -160,6 +161,11 @@ export class TileProvider {
     meshes0 = [];
     meshes1 = [];
     tileSource = null;
+
+    /**
+     * @type {{left:vec4,right:vec4,bottom:vec4,top:vec4,near:vec4,far:vec4}|null}
+    */
+    frustum = null;
     callback = this.provideCallbackGen();
 
     /**
@@ -171,6 +177,14 @@ export class TileProvider {
         this.camera = camera;
         this.callback(camera);
         camera.addOnchangeEeventListener(this.callback);
+    }
+
+    /**
+     * @param {Frustum} frustum 
+    */
+    setFrustum(frustum) {
+        this.frustum = frustum;
+        this.tileSource.setFrustum(frustum);
     }
 
     switchList() {
@@ -199,16 +213,17 @@ export class TileProvider {
         */
         function provideCallback(camera) {
             const tileSize = 256;
-            let pos = proj4(EPSG_4978, EPSG_4326, Array.from(camera.from.slice(0, 3)));
+            let pos = proj4(EPSG_4978, EPSG_4326, Array.from(camera.getFrom().slice(0, 3)));
             let height = pos[2];
             const initialResolution = 2 * Math.PI * EARTH_RADIUS / tileSize;
 
             const groundResolution = height * 2 / tileSize;
 
             const zoom = Math.log2(initialResolution / groundResolution);
-            const level = Math.ceil(zoom);
-            console.log("LEVEL:", level);
+            const level = Math.min(Math.max(Math.floor(zoom), 2), 20);
+
             if (that.curlevel !== level) {
+                console.log("LEVEL:", level);
                 that.curlevel = level;
                 that.meshes = [];
 
@@ -217,10 +232,12 @@ export class TileProvider {
                 that.switchList();
 
                 that.tileSource.fetchTilesOfLevelAsync(level, (tile) => {
-                    if (that.whichList === 0) {
-                        that.meshes0.push(TileMesher.toMesh(tile, 4, EPSG_4978));
-                    } else {
-                        that.meshes1.push(TileMesher.toMesh(tile, 4, EPSG_4978));
+                    if (tile) {
+                        if (that.whichList === 0) {
+                            that.meshes0.push(TileMesher.toMesh(tile, 4, EPSG_4978));
+                        } else {
+                            that.meshes1.push(TileMesher.toMesh(tile, 4, EPSG_4978));
+                        }
                     }
                 });
             }
@@ -230,4 +247,96 @@ export class TileProvider {
         return provideCallback;
     }
 
+}
+
+export class Frustum {
+
+    /** @type {vec4|null}*/
+    left = null;
+    /** @type {vec4|null}*/
+    right = null;
+    /** @type {vec4|null}*/
+    bottom = null;
+    /** @type {vec4|null}*/
+    top = null;
+    /** @type {vec4|null}*/
+    near = null;
+    /** @type {vec4|null}*/
+    far = null;
+
+    /**
+     * @param {vec4|null} left
+     * @param {vec4|null} right
+     * @param {vec4|null} bottom
+     * @param {vec4|null} top
+     * @param {vec4|null} near
+     * @param {vec4|null} far      
+    */
+    constructor(left, right, bottom, top, near, far) {
+        this.left = left;
+        this.right = right;
+        this.bottom = bottom;
+        this.top = top;
+        this.near = near;
+        this.far = far;
+    }
+
+    /**
+     * @param {vec4} p
+     * @returns {object} 
+    */
+    getDistanceOfPoint(p) {
+        return {
+            left: this.left && vec4.dot(p, this.left),
+            right: this.right && vec4.dot(p, this.right),
+            bottom: this.bottom && vec4.dot(p, this.bottom),
+            top: this.top && vec4.dot(p, this.top),
+            near: this.near && vec4.dot(p, this.near),
+            far: this.far && vec4.dot(p, this.far)
+        }
+    }
+}
+
+function mat4row(m, i) {
+    return vec4.fromValues(m[i * 4], m[i * 4 + 1], m[i * 4 + 2], m[i * 4 + 3]);
+}
+
+/**
+ * @returns {Frustum}
+*/
+export function buildFrustum(projMtx, viewMtx) {
+    // 矩阵按列主序存储 [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]
+    // const m = mat4.multiply(mat4.create(), projMtx, viewMtx);
+    const m = mat4.transpose(mat4.create(), mat4.multiply(mat4.create(), projMtx, viewMtx));
+
+    // 六个视锥体平面（左、右、下、上、近、远）
+    const planes = {
+        left: vec4.add(vec4.create(), mat4row(m, 3), mat4row(m, 0)),
+        right: vec4.subtract(vec4.create(), mat4row(m, 3), mat4row(m, 0)),
+        bottom: vec4.add(vec4.create(), mat4row(m, 3), mat4row(m, 1)),
+        top: vec4.subtract(vec4.create(), mat4row(m, 3), mat4row(m, 1)),
+        near: vec4.add(vec4.create(), mat4row(m, 3), mat4row(m, 2)),
+        far: vec4.subtract(vec4.create(), mat4row(m, 3), mat4row(m, 2))
+    };
+
+    const normplances = planes;
+
+    // // 归一化所有平面（使法线成为单位向量）
+    // for (const key in planes) {
+    //     const plane = planes[key];
+    //     const length = vec3.length(vec3.fromValues(plane[0], plane[1], plane[2]));
+    //     if (length > 0) {
+    //         normplances[key] = vec4.scale(plane, plane, -length);
+    //     } else {
+    //         console.warn("Degenerate plane detected during normalization");
+    //     }
+    // }
+    return new Frustum(
+        normplances["left"] || null,
+        normplances["right"] || null,
+        normplances["bottom"] || null,
+        normplances["top"] || null,
+        normplances["near"] || null,
+        normplances["far"] || null,
+    );
 }

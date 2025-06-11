@@ -1,4 +1,4 @@
-import Shader from "../shader";
+import Shader from "../shader.js";
 import vertSource from "./wireframe.vs"
 import fragSource from "./wireframe.fs"
 

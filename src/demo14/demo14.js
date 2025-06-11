@@ -1,8 +1,8 @@
 import { mat4 } from "gl-matrix";
 import "./demo14.css"
-import Camera, { CameraMouseControl } from "../common/camera";
-import { createLineMesh, createLineProgram, createPointProgram, createPoints, drawLine, drawPoint, lineBindBuffer, pointBindBuffer } from "../common/webglutils";
-import { pointCouldFromCSV } from "./pointcloud";
+import Camera, { CameraMouseControl } from "../common/camera.js";
+import { createLineMesh, createLineProgram, createPointProgram, createPoints, drawLine, drawPoint, lineBindBuffer, pointBindBuffer } from "../common/webglutils.js";
+import { pointCouldFromCSV } from "./pointcloud.js";
 
 let width = 1000;
 let height = 500;

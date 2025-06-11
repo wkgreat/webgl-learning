@@ -1,7 +1,8 @@
 import proj4 from "proj4";
-import { loadImage } from "../common/imageutils";
-import { EPSG_3857 } from "./proj";
-import { vec3 } from "gl-matrix";
+import { loadImage } from "../common/imageutils.js";
+import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
+import { vec3, vec4 } from "gl-matrix";
+import { Frustum } from "./tilerender.js";
 
 const XLIMIT = [-20037508.3427892, 20037508.3427892];
 const YLIMIT = [-20037508.3427892, 20037508.3427892];
@@ -12,6 +13,10 @@ const YLIMIT = [-20037508.3427892, 20037508.3427892];
 */
 export class TileSource {
     url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+    /**
+     * @type {Frustum|null}
+    */
+    frustum = null;
 
     constructor(url) {
         this.url = url;
@@ -23,25 +28,31 @@ export class TileSource {
      * @param {number} y y of tile
      * @returns {Promise<Tile>}
     */
-    async fetchTile(z, x, y) {
-        const realURL = this.url.replace("{z}", `${z}`).replace("{x}", `${x}`).replace("{y}", `${y}`);
-        const image = await loadImage(realURL);
-        const tile = new Tile();
-        tile.x = x;
-        tile.y = y;
-        tile.z = z;
-        tile.image = image;
+    async fetchTile(z, x, y, frustum) {
+        const tile = new Tile(x, y, z, this.url);
+        if (frustum) {
+            if (!tile.intersectwithFrustumECEF(frustum)) {
+                return null;
+            }
+        }
+        await tile.fetchTile();
         tile.provider = this;
         return tile;
+    }
+
+    setFrustum(frustum) {
+        this.frustum = frustum;
     }
 
     fetchTilesOfLevelAsync(z, callback) {
         const nrows = Math.pow(2, z);
         const ncols = Math.pow(2, z);
 
+        //TODO 递归判断
+
         for (let i = 0; i < ncols; ++i) {
             for (let j = 0; j < nrows; ++j) {
-                this.fetchTile(z, i, j).then(callback).catch(e => {
+                this.fetchTile(z, i, j, this.frustum).then(callback).catch(e => {
                     console.error(e);
                 });
             }
@@ -76,8 +87,72 @@ export class Tile {
     x = 0;
     y = 0;
     z = 0;
+    url = "";
     image = null;
     provider = null;
+
+    constructor(x, y, z, url) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.url = url.replace("{z}", `${z}`).replace("{x}", `${x}`).replace("{y}", `${y}`);
+    }
+
+    /**
+     * @param {vec4} p
+     * @param {vec4} plane
+     * @returns {boolean}  
+    */
+    pointInFrustumPlane(p, plane) {
+        return !plane || vec4.dot(p, plane) >= -1E-5;
+    }
+
+    /**
+     * @param {vec4} p
+     * @param {Frustum} frustum
+     * @returns {boolean}  
+    */
+    pointInFrustum(p, frustum) {
+
+        for (const plane of Object.values(frustum)) {
+            const distance = vec4.dot(plane, p);
+            if (distance < 0) return false; // 点在平面外侧
+        }
+
+        return this.pointInFrustumPlane(p, frustum.left) &&
+            this.pointInFrustumPlane(p, frustum.right) &&
+            this.pointInFrustumPlane(p, frustum.bottom) &&
+            this.pointInFrustumPlane(p, frustum.top) &&
+            this.pointInFrustumPlane(p, frustum.near) &&
+            this.pointInFrustumPlane(p, frustum.far);
+    }
+
+    intersectwithFrustumECEF(frustum) {
+
+        const ext = this.extent();
+        let p0 = [ext[0], ext[1]];
+        let p1 = [ext[0], ext[3]];
+        let p2 = [ext[2], ext[1]];
+        let p3 = [ext[2], ext[3]];
+        p0 = proj4(EPSG_3857, EPSG_4326, p0);
+        p1 = proj4(EPSG_3857, EPSG_4326, p1);
+        p2 = proj4(EPSG_3857, EPSG_4326, p2);
+        p3 = proj4(EPSG_3857, EPSG_4326, p3);
+
+        p0 = proj4(EPSG_4326, EPSG_4978, [...p0, 0]);
+        p1 = proj4(EPSG_4326, EPSG_4978, [...p1, 0]);
+        p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
+        p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
+
+        const vp0 = vec4.fromValues(p0[0], p0[1], p0[2], 1);
+        const vp1 = vec4.fromValues(p1[0], p1[1], p1[2], 1);
+        const vp2 = vec4.fromValues(p2[0], p2[1], p2[2], 1);
+        const vp3 = vec4.fromValues(p3[0], p3[1], p3[2], 1);
+
+        return this.pointInFrustum(vp0, frustum) || this.pointInFrustum(vp1, frustum)
+            || this.pointInFrustum(vp2, frustum) || this.pointInFrustum(vp3, frustum);
+
+    }
 
     /* 注意GOOGLE切片原点视左上角，不是左下角*/
     extent() {
@@ -88,6 +163,12 @@ export class Tile {
         const ymin = YLIMIT[1] - dy * (this.y + 1);
         const ymax = YLIMIT[1] - dy * (this.y);
         return [xmin, ymin, xmax, ymax];
+    }
+
+    async fetchTile() {
+        const image = await loadImage(this.url);
+        this.image = image;
+        return this.image;
     }
 
     center() {

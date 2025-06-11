@@ -2,11 +2,11 @@ import "./demo6.css"
 import vertSrouce from "./vert.glsl"
 import fragSource from "./frag.glsl"
 import { mat4 } from "gl-matrix";
-import { ObjMesh, ObjProvider } from "../common/objreader";
-import GLProgram from "./glprogram";
-import WireFrame from "../common/wireframe/wireframe";
-import { addWireframeHelper, createWireframeInfo } from "../common/helpers/wireframeHelper";
-import Camera, { CameraMouseControl } from "../common/camera";
+import { ObjMesh, ObjProvider } from "../common/objreader.js";
+import GLProgram from "./glprogram.js";
+import WireFrame from "../common/wireframe/wireframe.js";
+import { addWireframeHelper, createWireframeInfo } from "../common/helpers/wireframeHelper.js";
+import Camera, { CameraMouseControl } from "../common/camera.js";
 
 let width = 1000;
 let height = 500;

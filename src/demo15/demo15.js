@@ -1,7 +1,7 @@
 import { mat4 } from "gl-matrix";
 import "./demo15.css"
-import Camera, { CameraMouseControl } from "../common/camera";
-import { createPointCloudPorgram, drawPointCloud, PointCloud, PointCloudSetData } from "./pointcloud";
+import Camera, { CameraMouseControl } from "../common/camera.js";
+import { createPointCloudPorgram, drawPointCloud, PointCloud, PointCloudSetData } from "./pointcloud.js";
 
 let width = 1000;
 let height = 500;

@@ -1,7 +1,7 @@
 import "./demo9.css"
 import { mat4, vec3 } from "gl-matrix";
-import { createEnvBoxProgram, createEnvBoxBuffer, drawEnvBox } from "./envbox";
-import { createSkyBoxBuffer, createSkyBoxProgram, drawSkybox } from "./skybox";
+import { createEnvBoxProgram, createEnvBoxBuffer, drawEnvBox } from "./envbox.js";
+import { createSkyBoxBuffer, createSkyBoxProgram, drawSkybox } from "./skybox.js";
 
 const width = 1000;
 const height = 500;

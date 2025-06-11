@@ -1,6 +1,6 @@
 import { mat4 } from "gl-matrix";
-import Camera, { CameraMouseControl } from "../common/camera";
-import { createLineMesh, createLineProgram, drawLine, lineBindBuffer } from "../common/webglutils";
+import Camera, { CameraMouseControl } from "../common/camera.js";
+import { createLineMesh, createLineProgram, drawLine, lineBindBuffer } from "../common/webglutils.js";
 import "./demo19.css";
 import flowLineVertSource from './flowline.vert';
 import flowLineFragSource from './flowline.frag';

@@ -1,5 +1,6 @@
 import './index.css'
-import demolist from '../demolist.json'
+import demos from '../demolist.js'
+const demolist = demos;
 
 const optionDiv = document.getElementById('option-div');
 const frame = document.getElementById('demo-frame');

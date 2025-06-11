@@ -1,8 +1,8 @@
 import { vec3, vec4, mat4, mat3 } from "gl-matrix";
 import "./demo17.css"
-import Camera, { CameraMouseControl } from "../common/camera";
-import { createChessBoardTexture, createCone, createCube, createLineMesh, createLineProgram, createRectangle, createSphere, createTriangleProgram, drawLine, drawMesh, lineBindBuffer, meshBindBuffer } from "../common/webglutils";
-import { BlinnPhongMaterial, color01Hex2RGB, color01RGB2Hex, colorRGB2Hex } from "../common/material";
+import Camera, { CameraMouseControl } from "../common/camera.js";
+import { createChessBoardTexture, createCone, createCube, createLineMesh, createLineProgram, createRectangle, createSphere, createTriangleProgram, drawLine, drawMesh, lineBindBuffer, meshBindBuffer } from "../common/webglutils.js";
+import { BlinnPhongMaterial, color01Hex2RGB, color01RGB2Hex, colorRGB2Hex } from "../common/material.js";
 
 let width = 1000;
 let height = 500;

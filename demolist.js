@@ -1,4 +1,4 @@
-{
+const demos = {
     "demos": [
         {
             "name": "demo1",
@@ -90,3 +90,5 @@
         }
     ]
 }
+
+export default demos;
