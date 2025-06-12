@@ -55,9 +55,6 @@ async function draw(gl, canvas) {
 
     const programInfo = createTileProgram(gl);
     const bufferInfo = createTileProgramBuffer(gl);
-    // const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-    // const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-    // const tileSource = new TileSource(url);
 
     const modelMtx = mat4.create();
     const cameraFrom = proj4(EPSG_4326, EPSG_4978, [117, 32, 1E7]);
@@ -73,8 +70,10 @@ async function draw(gl, canvas) {
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+    // const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
     // const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    // const url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
+    const url = "http://tile.openstreetmap.org/{z}/{x}/{y}.png";
     const tileProvider = new TileProvider(url, camera);
     addTileProviderHelper(document.getElementById("helper"), tileProvider);
 

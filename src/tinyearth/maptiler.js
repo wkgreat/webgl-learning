@@ -33,7 +33,7 @@ export class TileSource {
      * @param {number} y y of tile
      * @returns {Promise<Tile>}
     */
-    async fetchTile(z, x, y, frustum) {
+    async fetchTileByDataZXY(z, x, y, frustum) {
         const tile = new Tile(x, y, z, this.url);
         // console.log("TRIM RATIO: ", this.isBack, this.isOutside, this.isPass);
         if (frustum) {
@@ -52,28 +52,83 @@ export class TileSource {
         return tile;
     }
 
+    /**
+ * @param {Tile} tile
+ * @param {Frustum} frustum 
+ * @returns {Promise<Tile>}
+*/
+    async fetchTileData(tile, frustum) {
+        if (frustum) {
+            if (tile.tileIsBack(frustum)) {
+                return null;
+            }
+            if (!tile.intersectwithFrustumECEF(frustum)) {
+                return null;
+            }
+        }
+        await tile.fetchTile();
+        tile.provider = this;
+        return tile;
+    }
+
     setFrustum(frustum) {
         this.frustum = frustum;
+    }
+
+    fetchTileRec(zmax, url, frustum) {
+
+        const z = 4;
+        const nrows = Math.pow(2, z);
+        const ncols = Math.pow(2, z);
+        const tiles = [];
+        for (let i = 0; i < ncols; ++i) {
+            for (let j = 0; j < nrows; ++j) {
+                tiles.push(new Tile(i, j, z, url, this.frustum));
+            }
+        }
+        while (tiles.length !== 0 && tiles[0].z !== zmax) {
+            const tile = tiles.shift();
+            if (frustum) {
+                if (tile.tileIsBack(frustum)) {
+                    continue;
+                }
+                if (tiles.z >= 9 && !tile.intersectwithFrustumECEF(frustum)) {
+                    continue;
+                }
+            }
+            tiles.push(...tile.subTiles());
+        }
+
+        return tiles;
     }
 
     fetchTilesOfLevelAsync(z, callback) {
         const nrows = Math.pow(2, z);
         const ncols = Math.pow(2, z);
 
-        //层级大于8时开始递归判断
+        //层级大于5时开始递归判断
         //TODO 瓦片递归判断与视锥体关系
 
-        const n = nrows * ncols;
-        let c = 0;
-        for (let i = 0; i < ncols; ++i) {
-            for (let j = 0; j < nrows; ++j) {
-                c += 1;
-                // console.log("PROGRESS: ", c, n);
-                this.fetchTile(z, i, j, this.frustum).then(callback).catch(e => {
+        if (z <= 5) {
+            for (let i = 0; i < ncols; ++i) {
+                for (let j = 0; j < nrows; ++j) {
+                    const tile = new Tile(i, j, z, this.url);
+                    this.fetchTileData(tile, this.frustum).then(callback).catch(e => {
+                        console.error(e);
+                    });
+                }
+            }
+        } else {
+            const tiles = this.fetchTileRec(z, this.url, this.frustum);
+            console.log("TILES LEVEL: ", z, tiles.length, tiles);
+            for (let tile of tiles) {
+                this.fetchTileData(tile, this.frustum).then(callback).catch(e => {
                     console.error(e);
                 });
             }
         }
+
+
     }
 
     async fetchTilesOfLevel(z) {
@@ -104,6 +159,7 @@ export class Tile {
     x = 0;
     y = 0;
     z = 0;
+    urltem = "";
     url = "";
     image = null;
     provider = null
@@ -112,7 +168,17 @@ export class Tile {
         this.x = x;
         this.y = y;
         this.z = z;
+        this.urltem = url;
         this.url = url.replace("{z}", `${z}`).replace("{x}", `${x}`).replace("{y}", `${y}`);
+    }
+
+    subTiles() {
+        return [
+            new Tile(this.x * 2, this.y * 2, this.z + 1, this.urltem),
+            new Tile(this.x * 2 + 1, this.y * 2, this.z + 1, this.urltem),
+            new Tile(this.x * 2, this.y * 2 + 1, this.z + 1, this.urltem),
+            new Tile(this.x * 2 + 1, this.y * 2 + 1, this.z + 1, this.urltem)
+        ];
     }
 
     /**
