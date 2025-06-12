@@ -1,47 +1,99 @@
 import proj4 from 'proj4';
 import Camera from './camera';
 import Projection from './projection';
-import { mat4, vec4 } from 'gl-matrix';
 import { buildFrustum } from './tilerender';
-import { expect } from '@jest/globals';
+import { beforeAll, describe, expect } from '@jest/globals';
 import { EPSG_4326, EPSG_4978 } from './proj';
+import { create, all } from 'mathjs';
+const math = create(all);
 
 function clipToWord(p, IM) {
-    const wp = vec4.transformMat4(vec4.create(), p, IM);
-    vec4.scale(wp, wp, 1.0 / wp[3]);
-    console.log("WP: ", wp);
+    let wp = math.multiply(IM, p);
+    wp = math.divide(wp, wp.get([3]));
     return wp;
 }
 
-test("relationshape of point and frustum", () => {
+function EQUAL_ZERO(v, e) {
+    return v > -e && v <= e;
+}
 
-    const width = 1000;
-    const height = 500;
+describe("frustum", () => {
 
-    const porjection = new Projection(Math.PI / 3, width / height, 1, 10000);
-    const cameraFrom = proj4(EPSG_4326, EPSG_4978, [117, 32, 1E7]);
-    const cameraTo = [0, 0, 0];
-    const cameraUp = [0, 0, 1];
-    const camera = new Camera(cameraFrom, cameraTo, cameraUp);
+    let projection;
+    let cameraFrom;
+    let cameraTo;
+    let cameraUp;
+    let camera;
+    let projMtx;
+    let viewMtx;
+    let M;
+    let IM;
+    let frustum;
 
-    const projMtx = porjection.perspective();
-    const viewMtx = camera.getMatrix().viewMtx;
-    const M = mat4.multiply(mat4.create(), projMtx, viewMtx);
-    const IM = mat4.invert(mat4.create(), M);
+    beforeAll(() => {
 
-    const cp0 = vec4.fromValues(-1, 0, 0, 1);
-    const wp0 = clipToWord(cp0, IM);
+        const width = 1000;
+        const height = 500;
 
-    const frustum = buildFrustum(projMtx, viewMtx);
+        projection = new Projection(Math.PI / 3, width / height, 1, 10000);
+        cameraFrom = proj4(EPSG_4326, EPSG_4978, [117, 32, 1E7]);
+        cameraTo = [0, 0, 0];
+        cameraUp = [0, 0, 1];
+        camera = new Camera(cameraFrom, cameraTo, cameraUp);
+        projMtx = projection.perspective64();
+        viewMtx = camera.getMatrix().viewMtx64;
+        M = math.multiply(projMtx, viewMtx);
+        IM = math.inv(M);
+        frustum = buildFrustum(projMtx, viewMtx);
 
-    let distanceObj = frustum.getDistanceOfPoint(wp0);
+    });
 
-    console.log("distance: ", distanceObj);
+    test("point on the left plane", () => {
+        let cp = math.matrix([-1, 0, 0, 1]);
+        let wp = clipToWord(cp, IM);
+        let dist = frustum.getDistanceOfPoint(wp);
+        expect(EQUAL_ZERO(dist["left"], 1E-5)).toBeTruthy();
+        expect(dist["right"] > 0).toBeTruthy();
+        expect(dist["bottom"] > 0).toBeTruthy();
+        expect(dist["top"] > 0).toBeTruthy();
+        expect(dist["near"] > 0).toBeTruthy();
+        expect(dist["far"] > 0).toBeTruthy();
+    });
 
-    expect(Math.abs(distanceObj["left"]) < 1).toBeTruthy();
-    expect(distanceObj["right"] > 0).toBeTruthy();
-    expect(distanceObj["bottom"] > 0).toBeTruthy();
-    expect(distanceObj["top"] > 0).toBeTruthy();
-    expect(distanceObj["near"] > 0).toBeTruthy();
-    expect(distanceObj["far"] > 0).toBeTruthy();
+    test("point to the left of left plane", () => {
+        cp = math.matrix([-100000, 0, 0, 1]);
+        wp = clipToWord(cp, IM);
+        dist = frustum.getDistanceOfPoint(wp);
+        expect(dist["left"] < -1).toBeTruthy();
+        expect(dist["right"] > 0).toBeTruthy();
+        expect(dist["bottom"] > 0).toBeTruthy();
+        expect(dist["top"] > 0).toBeTruthy();
+        expect(dist["near"] > 0).toBeTruthy();
+        expect(dist["far"] > 0).toBeTruthy();
+    });
+
+    test("point on the center", () => {
+        cp = math.matrix([0, 0, 0, 1]);
+        wp = clipToWord(cp, IM);
+        dist = frustum.getDistanceOfPoint(wp);
+        expect(dist["left"] > 0).toBeTruthy();
+        expect(dist["right"] > 0).toBeTruthy();
+        expect(dist["bottom"] > 0).toBeTruthy();
+        expect(dist["top"] > 0).toBeTruthy();
+        expect(dist["near"] > 0).toBeTruthy();
+        expect(dist["far"] > 0).toBeTruthy();
+    });
+
+    test("point to the right of right plane", () => {
+        cp = math.matrix([2, 0, 0, 1]);
+        wp = clipToWord(cp, IM);
+        dist = frustum.getDistanceOfPoint(wp);
+        expect(dist["left"] > 1).toBeTruthy();
+        expect(dist["right"] < -1).toBeTruthy();
+        expect(dist["bottom"] > 0).toBeTruthy();
+        expect(dist["top"] > 0).toBeTruthy();
+        expect(dist["near"] > 0).toBeTruthy();
+        expect(dist["far"] > 0).toBeTruthy();
+    });
+
 });

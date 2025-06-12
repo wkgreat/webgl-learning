@@ -10,10 +10,13 @@
     "author": {
         "name": "wkgreat"
     },
+    "license": "None",
     "homepage": "",
     "type": "module",
     "dependencies": {
         "gl-matrix": "^3.4.3",
+        "math": "^0.0.3",
+        "mathjs": "^14.5.2",
         "proj4": "^2.15.0"
     },
     "devDependencies": {
@@ -39,6 +42,6 @@
     "scripts": {
         "build": "webpack --config webpack.config.js",
         "start": "webpack-dev-server --config webpack.config.js",
-        "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest"
+        "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --runInBand --no-watchman"
     }
 }

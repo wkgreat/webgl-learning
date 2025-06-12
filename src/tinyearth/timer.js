@@ -51,7 +51,7 @@ export default class Timer {
 */
 export function addTimeHelper(timer, root) {
 
-    root.innerHTML = `
+    const html = `
         <div id="timer-helper-div">
             <label id="time-laber">Current Time: xxxxx</label>
             </br>
@@ -60,6 +60,8 @@ export function addTimeHelper(timer, root) {
             <button id="timer-start-button">开始计时器</button>
         </div>
     `
+
+    root.innerHTML = root.innerHTML + html;
 
     const timeLabel = document.getElementById("time-laber");
     const multiplerInput = document.getElementById("timer-multipler-input");

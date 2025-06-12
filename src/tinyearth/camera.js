@@ -1,6 +1,8 @@
 import { vec3, vec4, mat4 } from "gl-matrix";
 import proj4 from "proj4";
 import { EPSG_4326, EPSG_4978 } from "./proj.js";
+import { create, all } from 'mathjs';
+const math = create(all);
 
 /**
  * @class Camera
@@ -18,6 +20,8 @@ class Camera {
     #viewMtx = mat4.create();
     #invViewMtx = mat4.create();
     #changeFunc = [];
+    #viewMtx64 = math.identity(4);
+    #invViewMtx64 = math.identity(4);
 
     constructor(from, to, up) {
         this.setFrom(from);
@@ -53,13 +57,43 @@ class Camera {
     _look() {
         mat4.lookAt(this.#viewMtx, this._vec3(this.#from), this._vec3(this.#to), this._vec3(this.#up));
         mat4.invert(this.#invViewMtx, this.#viewMtx);
+
+        const eye = math.matrix([this.#from[0], this.#from[1], this.#from[2]]);
+        const target = math.matrix([this.#to[0], this.#to[1], this.#to[2]]);
+        const up = math.matrix([this.#up[0], this.#up[1], this.#up[2]]);
+
+        const z = math.divide(
+            math.subtract(eye, target),
+            math.norm(math.subtract(eye, target))
+        );
+        const x = math.divide(
+            math.cross(up, z),
+            math.norm(math.cross(up, z))
+        );
+        const y = math.cross(z, x);
+
+        const tx = -math.dot(x, eye);
+        const ty = -math.dot(y, eye);
+        const tz = -math.dot(z, eye);
+
+        this.#viewMtx64 = math.matrix([
+            [x.get([0]), x.get([1]), x.get([2]), tx],
+            [y.get([0]), y.get([1]), y.get([2]), ty],
+            [z.get([0]), z.get([1]), z.get([2]), tz],
+            [0, 0, 0, 1]
+        ]);
+
+        this.#invViewMtx64 = math.inv(this.#viewMtx64);
+
     }
 
     getMatrix() {
         this._look();
         return {
             viewMtx: this.#viewMtx,
-            invViewMtx: this.#invViewMtx
+            invViewMtx: this.#invViewMtx,
+            viewMtx64: this.#viewMtx64,
+            invViewMtx: this.#invViewMtx64
         };
     }
 

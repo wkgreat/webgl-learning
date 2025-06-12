@@ -1,4 +1,6 @@
 import { mat4 } from "gl-matrix";
+import { create, all } from 'mathjs';
+const math = create(all);
 
 class Projection {
 
@@ -21,6 +23,21 @@ class Projection {
 
     perspective() {
         return mat4.perspective(this.projMtx, this.fovy, this.aspect, this.near, this.far);
+    }
+
+    perspective64() {
+        const f = 1 / Math.tan(this.fovy / 2);
+        const rangeInv = 1 / (this.near - this.far);
+
+        // 构造 4x4 矩阵
+        const matrix = math.matrix([
+            [f / this.aspect, 0, 0, 0],
+            [0, f, 0, 0],
+            [0, 0, (this.far + this.near) * rangeInv, 2 * this.far * this.near * rangeInv],
+            [0, 0, -1, 0]
+        ]);
+
+        return matrix;
     }
 
     // 获取视锥体

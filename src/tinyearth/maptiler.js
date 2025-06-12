@@ -2,7 +2,9 @@ import proj4 from "proj4";
 import { loadImage } from "../common/imageutils.js";
 import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
 import { vec3, vec4 } from "gl-matrix";
-import { Frustum } from "./tilerender.js";
+import { create, all } from 'mathjs';
+import Frustum from "./frustum.js";
+const math = create(all);
 
 const XLIMIT = [-20037508.3427892, 20037508.3427892];
 const YLIMIT = [-20037508.3427892, 20037508.3427892];
@@ -17,6 +19,9 @@ export class TileSource {
      * @type {Frustum|null}
     */
     frustum = null;
+    isBack = 0;
+    isOutside = 0;
+    isPass = 0;
 
     constructor(url) {
         this.url = url;
@@ -30,13 +35,20 @@ export class TileSource {
     */
     async fetchTile(z, x, y, frustum) {
         const tile = new Tile(x, y, z, this.url);
+        // console.log("TRIM RATIO: ", this.isBack, this.isOutside, this.isPass);
         if (frustum) {
+            if (tile.tileIsBack(frustum)) {
+                this.isBack += 1;
+                return null;
+            }
             if (!tile.intersectwithFrustumECEF(frustum)) {
+                this.isOutside += 1;
                 return null;
             }
         }
         await tile.fetchTile();
         tile.provider = this;
+        this.isPass += 1;
         return tile;
     }
 
@@ -48,10 +60,15 @@ export class TileSource {
         const nrows = Math.pow(2, z);
         const ncols = Math.pow(2, z);
 
-        //TODO 递归判断
+        //层级大于8时开始递归判断
+        //TODO 瓦片递归判断与视锥体关系
 
+        const n = nrows * ncols;
+        let c = 0;
         for (let i = 0; i < ncols; ++i) {
             for (let j = 0; j < nrows; ++j) {
+                c += 1;
+                // console.log("PROGRESS: ", c, n);
                 this.fetchTile(z, i, j, this.frustum).then(callback).catch(e => {
                     console.error(e);
                 });
@@ -89,7 +106,7 @@ export class Tile {
     z = 0;
     url = "";
     image = null;
-    provider = null;
+    provider = null
 
     constructor(x, y, z, url) {
         this.x = x;
@@ -104,20 +121,15 @@ export class Tile {
      * @returns {boolean}  
     */
     pointInFrustumPlane(p, plane) {
-        return !plane || vec4.dot(p, plane) >= -1E-5;
+        return !plane || math.dot(p, plane) >= -1E-5;
     }
 
     /**
-     * @param {vec4} p
+     * @param {math.Matrix} p
      * @param {Frustum} frustum
      * @returns {boolean}  
     */
     pointInFrustum(p, frustum) {
-
-        for (const plane of Object.values(frustum)) {
-            const distance = vec4.dot(plane, p);
-            if (distance < 0) return false; // 点在平面外侧
-        }
 
         return this.pointInFrustumPlane(p, frustum.left) &&
             this.pointInFrustumPlane(p, frustum.right) &&
@@ -125,6 +137,59 @@ export class Tile {
             this.pointInFrustumPlane(p, frustum.top) &&
             this.pointInFrustumPlane(p, frustum.near) &&
             this.pointInFrustumPlane(p, frustum.far);
+    }
+
+    /**
+     * @param {math.Matrix} v 
+     * @returns {math.Matrix}
+    */
+    normalize(v) {
+        return math.divide(v, math.norm(v));
+    }
+
+    /**
+     * @param {Frustum} frustum
+     * @returns {boolean}
+    */
+    tileIsBack(frustum) {
+
+        if (frustum.getViewpoint() == null) {
+            return true;
+        }
+
+        const ext = this.extent();
+        let p0 = [ext[0], ext[1]];
+        let p1 = [ext[0], ext[3]];
+        let p2 = [ext[2], ext[1]];
+        let p3 = [ext[2], ext[3]];
+        p0 = proj4(EPSG_3857, EPSG_4326, p0);
+        p1 = proj4(EPSG_3857, EPSG_4326, p1);
+        p2 = proj4(EPSG_3857, EPSG_4326, p2);
+        p3 = proj4(EPSG_3857, EPSG_4326, p3);
+
+        p0 = proj4(EPSG_4326, EPSG_4978, [...p0, 0]);
+        p1 = proj4(EPSG_4326, EPSG_4978, [...p1, 0]);
+        p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
+        p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
+
+        p0 = math.matrix([p0[0], p0[1], p0[2]]);
+        p1 = math.matrix([p1[0], p1[1], p1[2]]);
+        p2 = math.matrix([p2[0], p2[1], p2[2]]);
+        p3 = math.matrix([p3[0], p3[1], p3[2]]);
+
+        const viewpoint = frustum.getViewpoint();
+        const sp0 = this.normalize(p0);
+        const sp1 = this.normalize(p1);
+        const sp2 = this.normalize(p2);
+        const sp3 = this.normalize(p3);
+
+        const vp0 = math.subtract(viewpoint, p0);
+        const vp1 = math.subtract(viewpoint, p1);
+        const vp2 = math.subtract(viewpoint, p2);
+        const vp3 = math.subtract(viewpoint, p3);
+
+        return math.dot(sp0, vp0) < 0 && math.dot(sp1, vp1) < 0 && math.dot(sp2, vp2) < 0 && math.dot(sp3, vp3) < 0;
+
     }
 
     intersectwithFrustumECEF(frustum) {
@@ -144,10 +209,10 @@ export class Tile {
         p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
         p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
 
-        const vp0 = vec4.fromValues(p0[0], p0[1], p0[2], 1);
-        const vp1 = vec4.fromValues(p1[0], p1[1], p1[2], 1);
-        const vp2 = vec4.fromValues(p2[0], p2[1], p2[2], 1);
-        const vp3 = vec4.fromValues(p3[0], p3[1], p3[2], 1);
+        const vp0 = math.matrix([p0[0], p0[1], p0[2], 1]);
+        const vp1 = math.matrix([p1[0], p1[1], p1[2], 1]);
+        const vp2 = math.matrix([p2[0], p2[1], p2[2], 1]);
+        const vp3 = math.matrix([p3[0], p3[1], p3[2], 1]);
 
         return this.pointInFrustum(vp0, frustum) || this.pointInFrustum(vp1, frustum)
             || this.pointInFrustum(vp2, frustum) || this.pointInFrustum(vp3, frustum);

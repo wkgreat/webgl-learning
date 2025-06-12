@@ -1,6 +1,6 @@
 import "./tinyearth.css"
 import { TileMesher, TileSource } from "./maptiler.js";
-import { buildFrustum, createTileProgram, createTileProgramBuffer, drawTileMesh, TileProvider } from "./tilerender.js";
+import { addTileProviderHelper, createTileProgram, createTileProgramBuffer, drawTileMesh, TileProvider } from "./tilerender.js";
 import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
 import { mat4 } from "gl-matrix";
 import Camera, { CameraMouseControl } from "./camera.js";
@@ -8,6 +8,7 @@ import proj4 from "proj4";
 import Projection from "./projection.js";
 import { getSunPositionECEF } from "./sun.js";
 import Timer, { addTimeHelper } from "./timer.js";
+import { buildFrustum } from "./frustum.js";
 
 let width = 1000;
 let height = 500;
@@ -75,6 +76,7 @@ async function draw(gl, canvas) {
     const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
     // const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
     const tileProvider = new TileProvider(url, camera);
+    addTileProviderHelper(document.getElementById("helper"), tileProvider);
 
     const sunPos = getSunPositionECEF();
     gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
@@ -110,7 +112,7 @@ async function draw(gl, canvas) {
 
         gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
 
-        const frustum = buildFrustum(projMtx, camera.getMatrix().viewMtx);
+        const frustum = buildFrustum(projection.perspective64(), camera.getMatrix().viewMtx64, camera.getFrom());
         tileProvider.setFrustum(frustum);
 
         for (let mesh of tileProvider.getMeshes()) {
