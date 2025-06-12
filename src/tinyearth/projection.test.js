@@ -14,9 +14,6 @@ describe("projection test", () => {
         const projMtx32 = projection.perspective();
         const projMtx64 = projection.perspective64();
 
-        console.log("projMtx32: ", projMtx32);
-        console.log("projMtx64: ", projMtx64);
-
         for (let i = 0; i < 4; i += 1) {
             for (let j = 0; j < 4; j += 1) {
                 expect(Math.abs(projMtx32[i * 4 + j] - projMtx64.get([i, j])) < 1E5).toBeTruthy();

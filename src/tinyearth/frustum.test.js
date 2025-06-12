@@ -1,10 +1,10 @@
 import proj4 from 'proj4';
 import Camera from './camera';
 import Projection from './projection';
-import { buildFrustum } from './tilerender';
 import { beforeAll, describe, expect } from '@jest/globals';
 import { EPSG_4326, EPSG_4978 } from './proj';
 import { create, all } from 'mathjs';
+import { buildFrustum } from './frustum';
 const math = create(all);
 
 function clipToWord(p, IM) {
@@ -44,7 +44,7 @@ describe("frustum", () => {
         viewMtx = camera.getMatrix().viewMtx64;
         M = math.multiply(projMtx, viewMtx);
         IM = math.inv(M);
-        frustum = buildFrustum(projMtx, viewMtx);
+        frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
 
     });
 
