@@ -4,16 +4,13 @@ import Projection from './projection';
 import { beforeAll, describe, expect } from '@jest/globals';
 import { EPSG_4326, EPSG_4978 } from './proj';
 import { buildFrustum } from './frustum';
-import math, { hpvmatrix } from './highp_math';
+import { vec4 } from 'gl-matrix';
+import { mat4_inv, mat4_mul } from './glmatrix_utils';
 
 function clipToWord(p, IM) {
-    let wp = math.multiply(IM, p);
-    wp = math.divide(wp, wp.get([3]));
+    let wp = vec4.transformMat4(vec4.create(), p, IM);
+    wp = vec4.scale(vec4.create(), wp, 1.0 / wp[3]);
     return wp;
-}
-
-function EQUAL_ZERO(v, e) {
-    return v > -e && v <= e;
 }
 
 describe("frustum", () => {
@@ -39,60 +36,60 @@ describe("frustum", () => {
         cameraTo = [0, 0, 0];
         cameraUp = [0, 0, 1];
         camera = new Camera(cameraFrom, cameraTo, cameraUp);
-        projMtx = projection.perspective64();
-        viewMtx = camera.getMatrix().viewMtx64;
-        M = math.multiply(projMtx, viewMtx);
-        IM = math.inv(M);
+        projMtx = projection.perspective();
+        viewMtx = camera.getMatrix().viewMtx;
+        M = mat4_mul(projMtx, viewMtx);
+        IM = mat4_inv(M);
         frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
 
     });
 
     test("point on the left plane", () => {
-        let cp = hpvmatrix([-1, 0, 0, 1]);
+        let cp = vec4.fromValues(-1, 0, 0, 1);
         let wp = clipToWord(cp, IM);
         let dist = frustum.getDistanceOfPoint(wp);
-        expect(math.equal(dist["left"], 0)).toBeTruthy();
-        expect(math.larger(dist["right"], 0)).toBeTruthy();
-        expect(math.larger(dist["bottom"], 0)).toBeTruthy();
-        expect(math.larger(dist["top"], 0)).toBeTruthy();
-        expect(math.larger(dist["near"], 0)).toBeTruthy();
-        expect(math.larger(dist["far"], 0)).toBeTruthy();
+        expect(dist["left"]).toBeCloseTo(0, 1E-6);
+        expect(dist["right"] > 0).toBeTruthy();
+        expect(dist["bottom"] > 0).toBeTruthy();
+        expect(dist["top"] > 0).toBeTruthy();
+        expect(dist["near"] > 0).toBeTruthy();
+        expect(dist["far"] > 0).toBeTruthy();
     });
 
     test("point to the left of left plane", () => {
-        cp = hpvmatrix([-100000, 0, 0, 1]);
+        cp = vec4.fromValues(-100000, 0, 0, 1);
         wp = clipToWord(cp, IM);
         dist = frustum.getDistanceOfPoint(wp);
-        expect(math.smaller(dist["left"], 0)).toBeTruthy();
-        expect(math.larger(dist["right"], 0)).toBeTruthy();
-        expect(math.larger(dist["bottom"], 0)).toBeTruthy();
-        expect(math.larger(dist["top"], 0)).toBeTruthy();
-        expect(math.larger(dist["near"], 0)).toBeTruthy();
-        expect(math.larger(dist["far"], 0)).toBeTruthy();
+        expect(dist["left"] < 0).toBeTruthy();
+        expect(dist["right"] > 0).toBeTruthy();
+        expect(dist["bottom"] > 0).toBeTruthy();
+        expect(dist["top"] > 0).toBeTruthy();
+        expect(dist["near"] > 0).toBeTruthy();
+        expect(dist["far"] > 0).toBeTruthy();
     });
 
     test("point on the center", () => {
-        cp = hpvmatrix([0, 0, 0, 1]);
+        cp = vec4.fromValues(0, 0, 0, 1);
         wp = clipToWord(cp, IM);
         dist = frustum.getDistanceOfPoint(wp);
-        expect(math.larger(dist["left"], 0)).toBeTruthy();
-        expect(math.larger(dist["right"], 0)).toBeTruthy();
-        expect(math.larger(dist["bottom"], 0)).toBeTruthy();
-        expect(math.larger(dist["top"], 0)).toBeTruthy();
-        expect(math.larger(dist["near"], 0)).toBeTruthy();
-        expect(math.larger(dist["far"], 0)).toBeTruthy();
+        expect(dist["left"] > 0).toBeTruthy();
+        expect(dist["right"] > 0).toBeTruthy();
+        expect(dist["bottom"] > 0).toBeTruthy();
+        expect(dist["top"] > 0).toBeTruthy();
+        expect(dist["near"] > 0).toBeTruthy();
+        expect(dist["far"] > 0).toBeTruthy();
     });
 
     test("point to the right of right plane", () => {
-        cp = hpvmatrix([2, 0, 0, 1]);
+        cp = vec4.fromValues(2, 0, 0, 1);
         wp = clipToWord(cp, IM);
         dist = frustum.getDistanceOfPoint(wp);
-        expect(math.larger(dist["left"], 1)).toBeTruthy();
-        expect(math.smaller(dist["right"], -1)).toBeTruthy();
-        expect(math.larger(dist["bottom"], 0)).toBeTruthy();
-        expect(math.larger(dist["top"], 0)).toBeTruthy();
-        expect(math.larger(dist["near"], 0)).toBeTruthy();
-        expect(math.larger(dist["far"], 0)).toBeTruthy();
+        expect(dist["left"] > 1).toBeTruthy();
+        expect(dist["right"] < -1).toBeTruthy();
+        expect(dist["bottom"] > 0).toBeTruthy();
+        expect(dist["top"] > 0).toBeTruthy();
+        expect(dist["near"] > 0).toBeTruthy();
+        expect(dist["far"] > 0).toBeTruthy();
     });
 
 });

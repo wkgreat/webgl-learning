@@ -1,32 +1,34 @@
+import { mat4, glMatrix, vec3, vec4 } from 'gl-matrix';
 import { Plane } from './geometry.js';
 import math, { hpvmatrix, math_affline } from './highp_math.js';
+glMatrix.setMatrixArrayType(Array);
 
 export default class Frustum {
 
-    /** @type {hpvmatrix|null}*/
+    /** @type {mat4|null}*/
     left = null;
-    /** @type {hpvmatrix|null}*/
+    /** @type {mat4|null}*/
     right = null;
-    /** @type {hpvmatrix|null}*/
+    /** @type {mat4|null}*/
     bottom = null;
-    /** @type {hpvmatrix|null}*/
+    /** @type {mat4|null}*/
     top = null;
-    /** @type {hpvmatrix|null}*/
+    /** @type {mat4|null}*/
     near = null;
-    /** @type {hpvmatrix|null}*/
+    /** @type {mat4|null}*/
     far = null;
-    /** @type {hpvmatrix|null}*/
+    /** @type {mat4|null}*/
     viewpoint = null;
-    /** @type {hpvmatrix|null}*/
+    /** @type {mat4|null}*/
     centerpoint = null;
 
     /**
-     * @param {hpvmatrix|null} left
-     * @param {hpvmatrix|null} right
-     * @param {hpvmatrix|null} bottom
-     * @param {hpvmatrix|null} top
-     * @param {hpvmatrix|null} near
-     * @param {hpvmatrix|null} far      
+     * @param {mat4|null} left
+     * @param {mat4|null} right
+     * @param {mat4|null} bottom
+     * @param {mat4|null} top
+     * @param {mat4|null} near
+     * @param {mat4|null} far      
     */
     constructor(left, right, bottom, top, near, far) {
         this.left = left;
@@ -42,7 +44,7 @@ export default class Frustum {
     }
 
     /**
-     * @param {math.Matrix} p 
+     * @param {vec4} p 
     */
     setViewpoint(p) {
         this.viewpoint = p;
@@ -57,23 +59,23 @@ export default class Frustum {
     }
 
     /**
-     * @param {math.Matrix} p
+     * @param {vec4} p
      * @returns {object} 
     */
     getDistanceOfPoint(p) {
         return {
-            left: this.left && math.dot(p, this.left),
-            right: this.right && math.dot(p, this.right),
-            bottom: this.bottom && math.dot(p, this.bottom),
-            top: this.top && math.dot(p, this.top),
-            near: this.near && math.dot(p, this.near),
-            far: this.far && math.dot(p, this.far)
+            left: this.left && vec4.dot(p, this.left),
+            right: this.right && vec4.dot(p, this.right),
+            bottom: this.bottom && vec4.dot(p, this.bottom),
+            top: this.top && vec4.dot(p, this.top),
+            near: this.near && vec4.dot(p, this.near),
+            far: this.far && vec4.dot(p, this.far)
         }
     }
 }
 
 function row(m, i) {
-    return math.matrix([m.get([i, 0]), m.get([i, 1]), m.get([i, 2]), m.get([i, 3])]);
+    return vec4.fromValues(m[i * 4], m[i * 4 + 1], m[i * 4 + 2], m[i * 4 + 3]);
 }
 
 /**
@@ -81,20 +83,21 @@ function row(m, i) {
  * @param {math.Matrix} viewMtx64 
  * @returns {Frustum}
 */
-export function buildFrustum(projMtx64, viewMtx64, viewpoint) {
+export function buildFrustum(projMtx, viewMtx, viewpoint) {
 
-    const m = math.multiply(projMtx64, viewMtx64);
-    const im = math.inv(m);
+    const m = mat4.multiply(mat4.create(), projMtx, viewMtx);
+    const im = mat4.invert(mat4.create(), m);
+    const tm = mat4.transpose(mat4.create(), m);
 
     // FAST EXTRACTION
     // 六个视锥体平面（左、右、下、上、近、远）
     const planes = {
-        left: math.add(row(m, 3), row(m, 0)),
-        right: math.subtract(row(m, 3), row(m, 0)),
-        bottom: math.add(row(m, 3), row(m, 1)),
-        top: math.subtract(row(m, 3), row(m, 1)),
-        near: math.add(row(m, 3), row(m, 2)),
-        far: math.subtract(row(m, 3), row(m, 2))
+        left: vec4.add(vec4.create(), row(tm, 3), row(tm, 0)),
+        right: vec4.subtract(vec4.create(), row(tm, 3), row(tm, 0)),
+        bottom: vec4.add(vec4.create(), row(tm, 3), row(tm, 1)),
+        top: vec4.subtract(vec4.create(), row(tm, 3), row(tm, 1)),
+        near: vec4.add(vec4.create(), row(tm, 3), row(tm, 2)),
+        far: vec4.subtract(vec4.create(), row(tm, 3), row(tm, 2))
     };
 
     // SLOW EXTRACTION
@@ -133,11 +136,11 @@ export function buildFrustum(projMtx64, viewMtx64, viewpoint) {
         planes["far"] || null,
     );
 
-    const vp = hpvmatrix([viewpoint[0], viewpoint[1], viewpoint[2]]);
-    f.setViewpoint(vp);
+    f.setViewpoint(vec3.fromValues(viewpoint[0], viewpoint[1], viewpoint[2]));
 
-    const cp = math.multiply(im, hpvmatrix([0, 0, 0, 1]));
-    f.setCenterpoint(hpvmatrix([cp.get([0]), cp.get([1]), cp.get([2])]));
+    const cp = vec4.transformMat4(vec4.create(), vec4.fromValues(0, 0, 0, 1), im);
+
+    f.setCenterpoint(vec3.fromValues(cp[0], cp[1], cp[2]));
 
     return f;
 }

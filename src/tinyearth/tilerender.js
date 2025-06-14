@@ -5,7 +5,6 @@ import { mat4, vec3, vec4 } from "gl-matrix";
 import Camera from "./camera.js";
 import { EPSG_4978, EPSG_4326, EARTH_RADIUS } from "./proj.js";
 import proj4 from "proj4";
-import math from "./highp_math.js";
 
 /**
  * @param {WebGL2RenderingContext} gl 
@@ -241,12 +240,12 @@ export class TileProvider {
         /**
          * @param {Camera} camera 
         */
-        function provideCallback(camera) {
+        function provideCallback(camera, info) {
 
             const level = that.tileLevel(camera);
 
             if (!that.isStop()) {
-                if (that.curlevel !== level) {
+                if (info === undefined || (info["type"] === 'zoom' && that.curlevel !== level) || info["type"] === 'move' || info["type"] === 'round') {
                     console.log("LEVEL:", level);
                     that.curlevel = level;
                     that.meshes = [];

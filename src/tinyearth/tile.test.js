@@ -6,6 +6,7 @@ import Projection from './projection';
 import Camera from './camera';
 import { buildFrustum } from './frustum';
 import math, { hpvmatrix } from './highp_math';
+import { vec4 } from 'gl-matrix';
 
 describe("tile", () => {
 
@@ -35,7 +36,7 @@ describe("tile", () => {
         const height = 500;
         const p4326 = [118.767335, 32.050471, 0];
         const p4978 = proj4(EPSG_4326, EPSG_4978, p4326);
-        const vp = hpvmatrix([...p4978, 1]);
+        const vp = vec4.fromValues(...p4978, 1);
 
         const projection = new Projection(Math.PI / 3, width / height, 1, 1E10);
         // const cameraFrom = proj4(EPSG_4326, EPSG_4978, [118.767335, 32.050471, 10000]);
@@ -43,8 +44,8 @@ describe("tile", () => {
         const cameraTo = [0, 0, 0];
         const cameraUp = [0, 0, 1];
         const camera = new Camera(cameraFrom, cameraTo, cameraUp);
-        const projMtx = projection.perspective64();
-        const viewMtx = camera.getMatrix().viewMtx64;
+        const projMtx = projection.perspective();
+        const viewMtx = camera.getMatrix().viewMtx;
         const frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
 
 
@@ -68,8 +69,8 @@ describe("tile", () => {
         const cameraTo = [0, 0, 0];
         const cameraUp = [0, 0, 1];
         const camera = new Camera(cameraFrom, cameraTo, cameraUp);
-        const projMtx = projection.perspective64();
-        const viewMtx = camera.getMatrix().viewMtx64;
+        const projMtx = projection.perspective();
+        const viewMtx = camera.getMatrix().viewMtx;
 
         const frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
 

@@ -1,12 +1,11 @@
 import proj4 from "proj4";
 import { loadImage } from "../common/imageutils.js";
 import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
-import { vec3, vec4 } from "gl-matrix";
-import { create, all } from 'mathjs';
+import { vec3, vec4, glMatrix } from "gl-matrix";
 import Frustum from "./frustum.js";
 import { Plane, planeCrossPlane, pointOutSidePlane, rayCrossTriangle, Triangle } from "./geometry.js";
-import { hpvmatrix, math_v3tv4 } from "./highp_math.js";
-const math = create(all);
+import { vec3_normalize, vec3_sub, vec3_t4 } from "./glmatrix_utils.js";
+glMatrix.setMatrixArrayType(Array);
 
 const XLIMIT = [-20037508.3427892, 20037508.3427892];
 const YLIMIT = [-20037508.3427892, 20037508.3427892];
@@ -118,7 +117,7 @@ export class TileSource {
                     }
                     continue;
                 }
-                if (!tile.intersectwithFrustumECEF(frustum)) {
+                if (!tile.intersectFrustum(frustum)) {
                     // FIXME 注意，随着视锥体的缩小，递归低层级的时候，可能时tile包含视锥体（虽相交但是tile没有节点在视锥体里面，导致判断失败）
                     if (testFlag) {
                         console.log(tile.z, tile.x, tile.y, "FALSE OUT");
@@ -235,12 +234,11 @@ export class Tile {
      * @returns {boolean}  
     */
     pointInFrustumPlane(p, plane) {
-        // return !plane || math.larger(math.dot(p, plane), 0);
         if (!plane) {
             return true;
         }
-        const v = math.dot(p, plane);
-        return math.larger(v, 0);
+        const v = vec4.dot(p, plane);
+        return Math.abs(v) > 0;
     }
 
     /**
@@ -256,14 +254,6 @@ export class Tile {
             this.pointInFrustumPlane(p, frustum.top) &&
             this.pointInFrustumPlane(p, frustum.near) &&
             this.pointInFrustumPlane(p, frustum.far);
-    }
-
-    /**
-     * @param {math.Matrix} v 
-     * @returns {math.Matrix}
-    */
-    normalize(v) {
-        return math.divide(v, math.norm(v));
     }
 
     /**
@@ -291,23 +281,23 @@ export class Tile {
         p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
         p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
 
-        p0 = hpvmatrix([p0[0], p0[1], p0[2]]);
-        p1 = hpvmatrix([p1[0], p1[1], p1[2]]);
-        p2 = hpvmatrix([p2[0], p2[1], p2[2]]);
-        p3 = hpvmatrix([p3[0], p3[1], p3[2]]);
+        p0 = vec3.fromValues(p0[0], p0[1], p0[2]);
+        p1 = vec3.fromValues(p1[0], p1[1], p1[2]);
+        p2 = vec3.fromValues(p2[0], p2[1], p2[2]);
+        p3 = vec3.fromValues(p3[0], p3[1], p3[2]);
 
         const viewpoint = frustum.getViewpoint();
-        const sp0 = this.normalize(p0);
-        const sp1 = this.normalize(p1);
-        const sp2 = this.normalize(p2);
-        const sp3 = this.normalize(p3);
+        const sp0 = vec3_normalize(p0);
+        const sp1 = vec3_normalize(p1);
+        const sp2 = vec3_normalize(p2);
+        const sp3 = vec3_normalize(p3);
 
-        const vp0 = math.subtract(viewpoint, p0);
-        const vp1 = math.subtract(viewpoint, p1);
-        const vp2 = math.subtract(viewpoint, p2);
-        const vp3 = math.subtract(viewpoint, p3);
+        const vp0 = vec3_sub(viewpoint, p0);
+        const vp1 = vec3_sub(viewpoint, p1);
+        const vp2 = vec3_sub(viewpoint, p2);
+        const vp3 = vec3_sub(viewpoint, p3);
 
-        return math.dot(sp0, vp0) < 0 && math.dot(sp1, vp1) < 0 && math.dot(sp2, vp2) < 0 && math.dot(sp3, vp3) < 0;
+        return vec3.dot(sp0, vp0) < 0 && vec3.dot(sp1, vp1) < 0 && vec3.dot(sp2, vp2) < 0 && vec3.dot(sp3, vp3) < 0;
 
     }
 
@@ -328,10 +318,10 @@ export class Tile {
         p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
         p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
 
-        const vp0 = hpvmatrix([p0[0], p0[1], p0[2], 1]);
-        const vp1 = hpvmatrix([p1[0], p1[1], p1[2], 1]);
-        const vp2 = hpvmatrix([p2[0], p2[1], p2[2], 1]);
-        const vp3 = hpvmatrix([p3[0], p3[1], p3[2], 1]);
+        const vp0 = vec4.fromValues(p0[0], p0[1], p0[2], 1);
+        const vp1 = vec4.fromValues(p1[0], p1[1], p1[2], 1);
+        const vp2 = vec4.fromValues(p2[0], p2[1], p2[2], 1);
+        const vp3 = vec4.fromValues(p3[0], p3[1], p3[2], 1);
 
         return this.pointInFrustum(vp0, frustum) || this.pointInFrustum(vp1, frustum)
             || this.pointInFrustum(vp2, frustum) || this.pointInFrustum(vp3, frustum);
@@ -354,7 +344,7 @@ export class Tile {
         p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
         p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
 
-        return [hpvmatrix(p0), hpvmatrix(p1), hpvmatrix(p2), hpvmatrix(p3)];
+        return [vec3.fromValues(...p0), vec3.fromValues(...p1), vec3.fromValues(...p2), vec3.fromValues(...p3)];
 
     }
 
@@ -369,24 +359,26 @@ export class Tile {
         const farPlane = new Plane(frustum.far);
 
         const planeList = [leftPlane, rightPlane, bottomPlane, topPlane, nearPlane, farPlane];
-        for (let p of points) {
+
+        // 所有点都在某平面外部
+        for (let plane of planeList) {
             let f = true;
-            for (let plane of planeList) {
-                if (!pointOutSidePlane(math_v3tv4(p), plane)) {
+            for (let p of points) {
+                if (!pointOutSidePlane(vec3_t4(p), plane)) {
                     f = false;
                     break;
                 }
             }
-            if (f) { // 所有点都在某平面外部
+            if (f) {
                 return false;
             }
         }
 
         // 某个点在视锥体内部
-        for (let plane of planeList) {
+        for (let p of points) {
             let f = true;
-            for (let p of points) {
-                if (pointOutSidePlane(math_v3tv4(p), plane)) {
+            for (let plane of planeList) {
+                if (pointOutSidePlane(vec3_t4(p), plane)) {
                     f = false;
                     break;
                 }
@@ -409,17 +401,17 @@ export class Tile {
         const ray2 = r2.ray;
         const ray3 = r3.ray;
 
-        if (rayCrossTriangle(ray0, triangle0).corss
-            || rayCrossTriangle(ray1, triangle0).corss
-            || rayCrossTriangle(ray2, triangle0).corss
-            || rayCrossTriangle(ray3, triangle0).corss) {
+        if (rayCrossTriangle(ray0, triangle0).cross
+            || rayCrossTriangle(ray1, triangle0).cross
+            || rayCrossTriangle(ray2, triangle0).cross
+            || rayCrossTriangle(ray3, triangle0).cross) {
             return true;
         }
 
-        if (rayCrossTriangle(ray0, triangle1).corss
-            || rayCrossTriangle(ray1, triangle1).corss
-            || rayCrossTriangle(ray2, triangle1).corss
-            || rayCrossTriangle(ray3, triangle1).corss) {
+        if (rayCrossTriangle(ray0, triangle1).cross
+            || rayCrossTriangle(ray1, triangle1).cross
+            || rayCrossTriangle(ray2, triangle1).cross
+            || rayCrossTriangle(ray3, triangle1).cross) {
             return true;
         }
 

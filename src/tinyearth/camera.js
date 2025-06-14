@@ -20,8 +20,6 @@ class Camera {
     #viewMtx = mat4.create();
     #invViewMtx = mat4.create();
     #changeFunc = [];
-    #viewMtx64 = math.identity(4);
-    #invViewMtx64 = math.identity(4);
 
     constructor(from, to, up) {
         this.setFrom(from);
@@ -57,43 +55,13 @@ class Camera {
     _look() {
         mat4.lookAt(this.#viewMtx, this._vec3(this.#from), this._vec3(this.#to), this._vec3(this.#up));
         mat4.invert(this.#invViewMtx, this.#viewMtx);
-
-        const eye = hpvmatrix([hpv(this.#from[0]), hpv(this.#from[1]), hpv(this.#from[2])]);
-        const target = hpvmatrix([hpv(this.#to[0]), hpv(this.#to[1]), hpv(this.#to[2])]);
-        const up = hpvmatrix([hpv(this.#up[0]), hpv(this.#up[1]), hpv(this.#up[2])]);
-
-        const z = math.divide(
-            math.subtract(eye, target),
-            math.norm(math.subtract(eye, target))
-        );
-        const x = math.divide(
-            math.cross(up, z),
-            math.norm(math.cross(up, z))
-        );
-        const y = math.cross(z, x);
-
-        const tx = hpvmul(hpv(-1), math.dot(x, eye));
-        const ty = hpvmul(hpv(-1), math.dot(y, eye));
-        const tz = hpvmul(hpv(-1), math.dot(z, eye));
-
-        this.#viewMtx64 = hpvmatrix([
-            [x.get([0]), x.get([1]), x.get([2]), tx],
-            [y.get([0]), y.get([1]), y.get([2]), ty],
-            [z.get([0]), z.get([1]), z.get([2]), tz],
-            [hpv(0), hpv(0), hpv(0), hpv(1)]
-        ]);
-
-        this.#invViewMtx64 = math.inv(this.#viewMtx64);
-
     }
 
     getMatrix() {
         this._look();
         return {
             viewMtx: this.#viewMtx,
-            invViewMtx: this.#invViewMtx,
-            viewMtx64: this.#viewMtx64,
-            invViewMtx: this.#invViewMtx64
+            invViewMtx: this.#invViewMtx
         };
     }
 
@@ -119,7 +87,7 @@ class Camera {
         this._look();
 
         for (let f of this.#changeFunc) {
-            f(this);
+            f(this, { type: "round" });
         }
     }
 
@@ -140,7 +108,7 @@ class Camera {
         this._look();
 
         for (let f of this.#changeFunc) {
-            f(this);
+            f(this, { type: "zoom" });
         }
     }
 
@@ -163,7 +131,7 @@ class Camera {
 
         this._look();
         for (let f of this.#changeFunc) {
-            f(this);
+            f(this, { type: "move" });
         }
 
     }
