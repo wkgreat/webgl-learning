@@ -5,8 +5,7 @@ import { mat4, vec3, vec4 } from "gl-matrix";
 import Camera from "./camera.js";
 import { EPSG_4978, EPSG_4326, EARTH_RADIUS } from "./proj.js";
 import proj4 from "proj4";
-import { create, all } from 'mathjs';
-const math = create(all);
+import math from "./highp_math.js";
 
 /**
  * @param {WebGL2RenderingContext} gl 

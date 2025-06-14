@@ -1,6 +1,5 @@
 import { mat4 } from "gl-matrix";
-import { create, all } from 'mathjs';
-const math = create(all);
+import math, { hpv, hpvadd, hpvdiv, hpvmatrix, hpvmul, hpvsub, hpvtan } from "./highp_math.js";
 
 class Projection {
 
@@ -26,15 +25,15 @@ class Projection {
     }
 
     perspective64() {
-        const f = 1 / Math.tan(this.fovy / 2);
-        const rangeInv = 1 / (this.near - this.far);
+        const f = hpvdiv(hpv(1), hpvtan(hpvdiv(this.fovy, hpv(2))))
+        const rangeInv = hpvdiv(hpv(1), hpvsub(hpv(this.near), hpv(this.far)));
 
         // 构造 4x4 矩阵
-        const matrix = math.matrix([
-            [f / this.aspect, 0, 0, 0],
-            [0, f, 0, 0],
-            [0, 0, (this.far + this.near) * rangeInv, 2 * this.far * this.near * rangeInv],
-            [0, 0, -1, 0]
+        const matrix = hpvmatrix([
+            [math.divide(hpv(f), hpv(this.aspect)), hpv(0), hpv(0), hpv(0)],
+            [hpv(0), hpv(f), hpv(0), hpv(0)],
+            [hpv(0), hpv(0), hpvmul(hpvadd(hpv(this.far), hpv(this.near)), rangeInv), hpvmul(hpv(2), hpvmul(hpv(this.far), hpvmul(hpv(this.near), rangeInv)))],
+            [hpv(0), hpv(0), hpv(-1), hpv(0)]
         ]);
 
         return matrix;

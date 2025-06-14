@@ -57,7 +57,7 @@ async function draw(gl, canvas) {
     const bufferInfo = createTileProgramBuffer(gl);
 
     const modelMtx = mat4.create();
-    const cameraFrom = proj4(EPSG_4326, EPSG_4978, [117, 32, 1E7]);
+    const cameraFrom = proj4(EPSG_4326, EPSG_4978, [118.767335, 32.050471, 1E7]);
     const cameraTo = [0, 0, 0];
     const cameraUp = [0, 0, 1];
     const camera = new Camera(cameraFrom, cameraTo, cameraUp);

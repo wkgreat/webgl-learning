@@ -4,6 +4,8 @@ import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
 import { vec3, vec4 } from "gl-matrix";
 import { create, all } from 'mathjs';
 import Frustum from "./frustum.js";
+import { Plane, planeCrossPlane, pointOutSidePlane, rayCrossTriangle, Triangle } from "./geometry.js";
+import { hpvmatrix, math_v3tv4 } from "./highp_math.js";
 const math = create(all);
 
 const XLIMIT = [-20037508.3427892, 20037508.3427892];
@@ -41,7 +43,7 @@ export class TileSource {
                 this.isBack += 1;
                 return null;
             }
-            if (!tile.intersectwithFrustumECEF(frustum)) {
+            if (!tile.intersectFrustum(frustum)) {
                 this.isOutside += 1;
                 return null;
             }
@@ -62,7 +64,7 @@ export class TileSource {
             if (tile.tileIsBack(frustum)) {
                 return null;
             }
-            if (!tile.intersectwithFrustumECEF(frustum)) {
+            if (!tile.intersectFrustum(frustum)) {
                 return null;
             }
         }
@@ -77,7 +79,7 @@ export class TileSource {
 
     fetchTileRec(zmax, url, frustum) {
 
-        const z = 4;
+        const z = 6;
         const nrows = Math.pow(2, z);
         const ncols = Math.pow(2, z);
         const tiles = [];
@@ -86,19 +88,49 @@ export class TileSource {
                 tiles.push(new Tile(i, j, z, url, this.frustum));
             }
         }
+        const testTile = new Tile(27194, 13301, 15, url);
+        let curtile = testTile;
+        const tileStack = [];
+        while (curtile.z >= 0) {
+            tileStack.push([curtile.x, curtile.y, curtile.z]);
+            curtile = curtile.supTile();
+        }
+        let testFlag = false;
+        console.log("tilestack: ", tileStack);
+
+        function tileIsTest(tile) {
+            for (let t of tileStack) {
+                if (t[2] === tile.z && t[0] === tile.x && t[1] === tile.y) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         while (tiles.length !== 0 && tiles[0].z !== zmax) {
             const tile = tiles.shift();
+
+            testFlag = tileIsTest(tile);
             if (frustum) {
                 if (tile.tileIsBack(frustum)) {
+                    if (testFlag) {
+                        console.log(tile.z, tile.x, tile.y, "FALSE BACK");
+                    }
                     continue;
                 }
-                if (tiles.z >= 9 && !tile.intersectwithFrustumECEF(frustum)) {
+                if (!tile.intersectwithFrustumECEF(frustum)) {
+                    // FIXME 注意，随着视锥体的缩小，递归低层级的时候，可能时tile包含视锥体（虽相交但是tile没有节点在视锥体里面，导致判断失败）
+                    if (testFlag) {
+                        console.log(tile.z, tile.x, tile.y, "FALSE OUT");
+                    }
                     continue;
                 }
             }
+            if (testFlag) {
+                console.log(tile.z, tile.x, tile.y, "TRUE");
+            }
             tiles.push(...tile.subTiles());
         }
-
         return tiles;
     }
 
@@ -106,10 +138,7 @@ export class TileSource {
         const nrows = Math.pow(2, z);
         const ncols = Math.pow(2, z);
 
-        //层级大于5时开始递归判断
-        //TODO 瓦片递归判断与视锥体关系
-
-        if (z <= 5) {
+        if (z <= 6) {
             for (let i = 0; i < ncols; ++i) {
                 for (let j = 0; j < nrows; ++j) {
                     const tile = new Tile(i, j, z, this.url);
@@ -120,7 +149,7 @@ export class TileSource {
             }
         } else {
             const tiles = this.fetchTileRec(z, this.url, this.frustum);
-            console.log("TILES LEVEL: ", z, tiles.length, tiles);
+            console.log("TILES LEVEL: ", z, tiles.length, this.frustum);
             for (let tile of tiles) {
                 this.fetchTileData(tile, this.frustum).then(callback).catch(e => {
                     console.error(e);
@@ -172,6 +201,25 @@ export class Tile {
         this.url = url.replace("{z}", `${z}`).replace("{x}", `${x}`).replace("{y}", `${y}`);
     }
 
+    supTileAtLevel(level) {
+        if (level > this.z) {
+            console.error("supTile error");
+        }
+
+        let curTile = this;
+        while (curTile.z > level) {
+            curTile = curTile.supTile();
+        }
+        return curTile;
+    }
+
+    supTile() {
+        const newZ = this.z - 1;
+        const newX = this.x >> 1;
+        const newY = this.y >> 1;
+        return new Tile(newX, newY, newZ, this.urltem);
+    }
+
     subTiles() {
         return [
             new Tile(this.x * 2, this.y * 2, this.z + 1, this.urltem),
@@ -187,7 +235,12 @@ export class Tile {
      * @returns {boolean}  
     */
     pointInFrustumPlane(p, plane) {
-        return !plane || math.dot(p, plane) >= -1E-5;
+        // return !plane || math.larger(math.dot(p, plane), 0);
+        if (!plane) {
+            return true;
+        }
+        const v = math.dot(p, plane);
+        return math.larger(v, 0);
     }
 
     /**
@@ -238,10 +291,10 @@ export class Tile {
         p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
         p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
 
-        p0 = math.matrix([p0[0], p0[1], p0[2]]);
-        p1 = math.matrix([p1[0], p1[1], p1[2]]);
-        p2 = math.matrix([p2[0], p2[1], p2[2]]);
-        p3 = math.matrix([p3[0], p3[1], p3[2]]);
+        p0 = hpvmatrix([p0[0], p0[1], p0[2]]);
+        p1 = hpvmatrix([p1[0], p1[1], p1[2]]);
+        p2 = hpvmatrix([p2[0], p2[1], p2[2]]);
+        p3 = hpvmatrix([p3[0], p3[1], p3[2]]);
 
         const viewpoint = frustum.getViewpoint();
         const sp0 = this.normalize(p0);
@@ -275,13 +328,102 @@ export class Tile {
         p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
         p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
 
-        const vp0 = math.matrix([p0[0], p0[1], p0[2], 1]);
-        const vp1 = math.matrix([p1[0], p1[1], p1[2], 1]);
-        const vp2 = math.matrix([p2[0], p2[1], p2[2], 1]);
-        const vp3 = math.matrix([p3[0], p3[1], p3[2], 1]);
+        const vp0 = hpvmatrix([p0[0], p0[1], p0[2], 1]);
+        const vp1 = hpvmatrix([p1[0], p1[1], p1[2], 1]);
+        const vp2 = hpvmatrix([p2[0], p2[1], p2[2], 1]);
+        const vp3 = hpvmatrix([p3[0], p3[1], p3[2], 1]);
 
         return this.pointInFrustum(vp0, frustum) || this.pointInFrustum(vp1, frustum)
             || this.pointInFrustum(vp2, frustum) || this.pointInFrustum(vp3, frustum);
+
+    }
+
+    getTileCorner() {
+        const ext = this.extent();
+        let p0 = [ext[0], ext[1]];
+        let p1 = [ext[0], ext[3]];
+        let p2 = [ext[2], ext[3]];
+        let p3 = [ext[2], ext[1]];
+        p0 = proj4(EPSG_3857, EPSG_4326, p0);
+        p1 = proj4(EPSG_3857, EPSG_4326, p1);
+        p2 = proj4(EPSG_3857, EPSG_4326, p2);
+        p3 = proj4(EPSG_3857, EPSG_4326, p3);
+
+        p0 = proj4(EPSG_4326, EPSG_4978, [...p0, 0]);
+        p1 = proj4(EPSG_4326, EPSG_4978, [...p1, 0]);
+        p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
+        p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
+
+        return [hpvmatrix(p0), hpvmatrix(p1), hpvmatrix(p2), hpvmatrix(p3)];
+
+    }
+
+    /**@param {Frustum} frustum */
+    intersectFrustum(frustum) {
+        const points = this.getTileCorner();
+        const leftPlane = new Plane(frustum.left);
+        const rightPlane = new Plane(frustum.right);
+        const bottomPlane = new Plane(frustum.bottom);
+        const topPlane = new Plane(frustum.top);
+        const nearPlane = new Plane(frustum.near);
+        const farPlane = new Plane(frustum.far);
+
+        const planeList = [leftPlane, rightPlane, bottomPlane, topPlane, nearPlane, farPlane];
+        for (let p of points) {
+            let f = true;
+            for (let plane of planeList) {
+                if (!pointOutSidePlane(math_v3tv4(p), plane)) {
+                    f = false;
+                    break;
+                }
+            }
+            if (f) { // 所有点都在某平面外部
+                return false;
+            }
+        }
+
+        // 某个点在视锥体内部
+        for (let plane of planeList) {
+            let f = true;
+            for (let p of points) {
+                if (pointOutSidePlane(math_v3tv4(p), plane)) {
+                    f = false;
+                    break;
+                }
+            }
+            if (f) {
+                return true;
+            }
+        }
+
+        //tile拆成两个三角形
+        const triangle0 = new Triangle(points[0], points[1], points[2]);
+        const triangle1 = new Triangle(points[0], points[2], points[3]);
+        //视锥体边是否穿过三角形
+        const r0 = planeCrossPlane(leftPlane, bottomPlane);
+        const r1 = planeCrossPlane(bottomPlane, rightPlane);
+        const r2 = planeCrossPlane(rightPlane, topPlane);
+        const r3 = planeCrossPlane(leftPlane, topPlane);
+        const ray0 = r0.ray;
+        const ray1 = r1.ray;
+        const ray2 = r2.ray;
+        const ray3 = r3.ray;
+
+        if (rayCrossTriangle(ray0, triangle0).corss
+            || rayCrossTriangle(ray1, triangle0).corss
+            || rayCrossTriangle(ray2, triangle0).corss
+            || rayCrossTriangle(ray3, triangle0).corss) {
+            return true;
+        }
+
+        if (rayCrossTriangle(ray0, triangle1).corss
+            || rayCrossTriangle(ray1, triangle1).corss
+            || rayCrossTriangle(ray2, triangle1).corss
+            || rayCrossTriangle(ray3, triangle1).corss) {
+            return true;
+        }
+
+        return false;
 
     }
 

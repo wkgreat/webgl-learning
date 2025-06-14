@@ -1,31 +1,32 @@
-import { create, all } from 'mathjs';
-const math = create(all);
+import { Plane } from './geometry.js';
+import math, { hpvmatrix, math_affline } from './highp_math.js';
 
 export default class Frustum {
 
-    /** @type {math.Matrix|null}*/
+    /** @type {hpvmatrix|null}*/
     left = null;
-    /** @type {math.Matrix|null}*/
+    /** @type {hpvmatrix|null}*/
     right = null;
-    /** @type {math.Matrix|null}*/
+    /** @type {hpvmatrix|null}*/
     bottom = null;
-    /** @type {math.Matrix|null}*/
+    /** @type {hpvmatrix|null}*/
     top = null;
-    /** @type {math.Matrix|null}*/
+    /** @type {hpvmatrix|null}*/
     near = null;
-    /** @type {math.Matrix|null}*/
+    /** @type {hpvmatrix|null}*/
     far = null;
-
-    /** @type {math.Matrix|null}*/
+    /** @type {hpvmatrix|null}*/
     viewpoint = null;
+    /** @type {hpvmatrix|null}*/
+    centerpoint = null;
 
     /**
-     * @param {math.Matrix|null} left
-     * @param {math.Matrix|null} right
-     * @param {math.Matrix|null} bottom
-     * @param {math.Matrix|null} top
-     * @param {math.Matrix|null} near
-     * @param {math.Matrix|null} far      
+     * @param {hpvmatrix|null} left
+     * @param {hpvmatrix|null} right
+     * @param {hpvmatrix|null} bottom
+     * @param {hpvmatrix|null} top
+     * @param {hpvmatrix|null} near
+     * @param {hpvmatrix|null} far      
     */
     constructor(left, right, bottom, top, near, far) {
         this.left = left;
@@ -45,6 +46,14 @@ export default class Frustum {
     */
     setViewpoint(p) {
         this.viewpoint = p;
+    }
+
+    getCenterpoint() {
+        return this.centerpoint;
+    }
+
+    setCenterpoint(p) {
+        this.centerpoint = p;
     }
 
     /**
@@ -75,7 +84,9 @@ function row(m, i) {
 export function buildFrustum(projMtx64, viewMtx64, viewpoint) {
 
     const m = math.multiply(projMtx64, viewMtx64);
+    const im = math.inv(m);
 
+    // FAST EXTRACTION
     // 六个视锥体平面（左、右、下、上、近、远）
     const planes = {
         left: math.add(row(m, 3), row(m, 0)),
@@ -86,6 +97,33 @@ export function buildFrustum(projMtx64, viewMtx64, viewpoint) {
         far: math.subtract(row(m, 3), row(m, 2))
     };
 
+    // SLOW EXTRACTION
+    // const p0 = math_affline(hpvmatrix([-1, -1, -1]), im);
+    // const p1 = math_affline(hpvmatrix([1, -1, -1]), im);
+    // const p2 = math_affline(hpvmatrix([1, 1, -1]), im);
+    // const p3 = math_affline(hpvmatrix([-1, 1, -1]), im);
+    // const p4 = math_affline(hpvmatrix([-1, 1, 1]), im);
+    // const p5 = math_affline(hpvmatrix([-1, -1, 1]), im);
+    // const p6 = math_affline(hpvmatrix([1, -1, 1]), im);
+    // const p7 = math_affline(hpvmatrix([1, 1, 1]), im);
+
+    // const planes = {
+    //     left: Plane.fromThreePoints(p5, p0, p3).params,
+    //     right: Plane.fromThreePoints(p1, p6, p7).params,
+    //     bottom: Plane.fromThreePoints(p6, p5, p0).params,
+    //     top: Plane.fromThreePoints(p4, p3, p2).params,
+    //     near: Plane.fromThreePoints(p3, p0, p1).params,
+    //     far: Plane.fromThreePoints(p7, p6, p5).params
+    // };
+
+    // 归一化
+    // planes.left = math.divide(planes.left, math.norm(vec3Fromvec4(planes.left)));
+    // planes.right = math.divide(planes.right, math.norm(vec3Fromvec4(planes.right)));
+    // planes.bottom = math.divide(planes.bottom, math.norm(vec3Fromvec4(planes.bottom)));
+    // planes.top = math.divide(planes.top, math.norm(vec3Fromvec4(planes.top)));
+    // planes.near = math.divide(planes.near, math.norm(vec3Fromvec4(planes.near)));
+    // planes.far = math.divide(planes.far, math.norm(vec3Fromvec4(planes.far)));
+
     const f = new Frustum(
         planes["left"] || null,
         planes["right"] || null,
@@ -95,9 +133,11 @@ export function buildFrustum(projMtx64, viewMtx64, viewpoint) {
         planes["far"] || null,
     );
 
-    const vp = math.matrix([viewpoint[0], viewpoint[1], viewpoint[2]]);
-
+    const vp = hpvmatrix([viewpoint[0], viewpoint[1], viewpoint[2]]);
     f.setViewpoint(vp);
+
+    const cp = math.multiply(im, hpvmatrix([0, 0, 0, 1]));
+    f.setCenterpoint(hpvmatrix([cp.get([0]), cp.get([1]), cp.get([2])]));
 
     return f;
 }
