@@ -1,4 +1,4 @@
-import { vec3, vec4, mat4, glMatrix } from "gl-matrix";
+import { glMatrix, mat4, vec3, vec4 } from "gl-matrix";
 glMatrix.setMatrixArrayType(Array);
 
 export function vec3_scale(v1, a) {

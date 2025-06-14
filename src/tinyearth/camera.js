@@ -1,7 +1,6 @@
 import { vec3, vec4, mat4, glMatrix } from "gl-matrix";
 import proj4 from "proj4";
 import { EPSG_4326, EPSG_4978 } from "./proj.js";
-import math, { hpv, hpvmatrix, hpvmul } from "./highp_math.js";
 glMatrix.setMatrixArrayType(Array);
 
 /**
@@ -70,6 +69,7 @@ class Camera {
      * @param {number} dx x方向上旋转（绕y轴旋转）的角度
      * @param {number} dy y方向上旋转（绕x轴旋转）的角度
      * @returns {void}
+     * @todo 根据比例尺移动，round时避免重复请求
     */
     round(dx, dy) {
 
@@ -94,6 +94,7 @@ class Camera {
     /**
      * @description 缩放（相机前进或后退）
      * @param {number} f 缩放系数 
+     * @todo 考虑相机极低，瓦片变成back的情况
     */
     zoom(f) {
         const d = vec4.create();
@@ -116,6 +117,7 @@ class Camera {
      * @description 相机平移
      * @param {number} dx x轴方向平移量
      * @param {number} dy y轴方向平移量
+     * @todo 根据比例尺移动，move时避免重复请求
     */
     move(dx, dy) {
         const viewFrom4 = vec4.transformMat4(vec4.create(), this.#from, this.#viewMtx);

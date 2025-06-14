@@ -1,4 +1,4 @@
-import { vec3, vec4, glMatrix } from "gl-matrix";
+import { glMatrix, vec3, vec4 } from "gl-matrix";
 import { vec3_cross, vec3_sub } from "./glmatrix_utils.js";
 glMatrix.setMatrixArrayType(Array);
 

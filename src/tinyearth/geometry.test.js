@@ -1,13 +1,13 @@
-import { beforeAll, describe, expect, test } from '@jest/globals';
-import { Plane, planeCrossPlane, Ray, rayCrossTriangle, Triangle } from './geometry';
-import math, { hpv, hpvequal, hpvmatrix, hpvmul, math_affline, math_normalize, math_v3tv4, math_v4tv3 } from './highp_math';
-import { buildFrustum } from './frustum';
-import Projection from './projection';
-import Camera from './camera';
+import { describe, expect, test } from '@jest/globals';
+import { vec3, vec4 } from 'gl-matrix';
 import proj4 from 'proj4';
-import { EPSG_4326, EPSG_4978 } from './proj';
-import { mat4, vec3, vec4 } from 'gl-matrix';
+import Camera from './camera';
+import { buildFrustum } from './frustum';
+import { Plane, planeCrossPlane, Ray, rayCrossTriangle, Triangle } from './geometry';
 import { mat4_inv, mat4_mul, vec3_add, vec3_normalize, vec3_scale, vec3_sub, vec3_t4, vec3_t4_affine, vec4_t3 } from './glmatrix_utils';
+import math, { math_v3tv4, math_v4tv3 } from './highp_math';
+import { EPSG_4326, EPSG_4978 } from './proj';
+import Projection from './projection';
 
 describe("geometry", () => {
 

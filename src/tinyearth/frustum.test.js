@@ -1,11 +1,11 @@
+import { beforeAll, describe, expect } from '@jest/globals';
+import { vec4 } from 'gl-matrix';
 import proj4 from 'proj4';
 import Camera from './camera';
-import Projection from './projection';
-import { beforeAll, describe, expect } from '@jest/globals';
-import { EPSG_4326, EPSG_4978 } from './proj';
 import { buildFrustum } from './frustum';
-import { vec4 } from 'gl-matrix';
 import { mat4_inv, mat4_mul } from './glmatrix_utils';
+import { EPSG_4326, EPSG_4978 } from './proj';
+import Projection from './projection';
 
 function clipToWord(p, IM) {
     let wp = vec4.transformMat4(vec4.create(), p, IM);

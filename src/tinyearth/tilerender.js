@@ -1,10 +1,10 @@
-import tileVertSource from "./tile.vert"
-import tileFragSource from "./tile.frag"
-import { Tile, TileMesher, TileSource } from "./maptiler.js";
-import { mat4, vec3, vec4 } from "gl-matrix";
-import Camera from "./camera.js";
-import { EPSG_4978, EPSG_4326, EARTH_RADIUS } from "./proj.js";
+import { mat4, vec4 } from "gl-matrix";
 import proj4 from "proj4";
+import Camera from "./camera.js";
+import { TileMesher, TileSource } from "./maptiler.js";
+import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
+import tileFragSource from "./tile.frag";
+import tileVertSource from "./tile.vert";
 
 /**
  * @param {WebGL2RenderingContext} gl 
@@ -229,7 +229,7 @@ export class TileProvider {
         const groundResolution = height * 2 / tileSize;
 
         const zoom = Math.log2(initialResolution / groundResolution);
-        return Math.min(Math.max(Math.floor(zoom) + 1, 2), 20);
+        return Math.min(Math.max(Math.floor(zoom) + 2, 2), 20);
     }
 
 
@@ -248,7 +248,6 @@ export class TileProvider {
                 if (info === undefined || (info["type"] === 'zoom' && that.curlevel !== level) || info["type"] === 'move' || info["type"] === 'round') {
                     console.log("LEVEL:", level);
                     that.curlevel = level;
-                    that.meshes = [];
 
                     that.meshes0 = [];
                     that.meshes1 = [];

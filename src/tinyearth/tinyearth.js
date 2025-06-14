@@ -1,13 +1,13 @@
-import "./tinyearth.css"
-import { addTileProviderHelper, createTileProgram, createTileProgramBuffer, drawTileMesh, TileProvider } from "./tilerender.js";
-import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
 import { mat4 } from "gl-matrix";
-import Camera, { CameraMouseControl } from "./camera.js";
 import proj4 from "proj4";
+import Camera, { CameraMouseControl } from "./camera.js";
+import { buildFrustum } from "./frustum.js";
+import { EPSG_4326, EPSG_4978 } from "./proj.js";
 import Projection from "./projection.js";
 import { getSunPositionECEF } from "./sun.js";
+import { addTileProviderHelper, createTileProgram, createTileProgramBuffer, drawTileMesh, TileProvider } from "./tilerender.js";
 import Timer, { addTimeHelper } from "./timer.js";
-import { buildFrustum } from "./frustum.js";
+import "./tinyearth.css";
 
 let width = 1000;
 let height = 500;
@@ -69,9 +69,9 @@ async function draw(gl, canvas) {
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+    const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
     // const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-    const url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
+    // const url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
     const tileProvider = new TileProvider(url, camera);
     addTileProviderHelper(document.getElementById("helper"), tileProvider);
 

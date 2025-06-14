@@ -1,12 +1,11 @@
+import { describe, expect } from '@jest/globals';
+import { vec4 } from 'gl-matrix';
 import proj4 from 'proj4';
-import { beforeAll, describe, expect } from '@jest/globals';
-import { EPSG_3857, EPSG_4326, EPSG_4978 } from './proj';
-import { Tile } from './maptiler';
-import Projection from './projection';
 import Camera from './camera';
 import { buildFrustum } from './frustum';
-import math, { hpvmatrix } from './highp_math';
-import { vec4 } from 'gl-matrix';
+import { Tile } from './maptiler';
+import { EPSG_3857, EPSG_4326, EPSG_4978 } from './proj';
+import Projection from './projection';
 
 describe("tile", () => {
 

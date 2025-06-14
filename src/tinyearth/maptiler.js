@@ -1,10 +1,10 @@
+import { glMatrix, vec3, vec4 } from "gl-matrix";
 import proj4 from "proj4";
 import { loadImage } from "../common/imageutils.js";
-import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
-import { vec3, vec4, glMatrix } from "gl-matrix";
 import Frustum from "./frustum.js";
 import { Plane, planeCrossPlane, pointOutSidePlane, rayCrossTriangle, Triangle } from "./geometry.js";
 import { vec3_normalize, vec3_sub, vec3_t4 } from "./glmatrix_utils.js";
+import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
 glMatrix.setMatrixArrayType(Array);
 
 const XLIMIT = [-20037508.3427892, 20037508.3427892];

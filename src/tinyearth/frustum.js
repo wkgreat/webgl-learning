@@ -1,6 +1,4 @@
-import { mat4, glMatrix, vec3, vec4 } from 'gl-matrix';
-import { Plane } from './geometry.js';
-import math, { hpvmatrix, math_affline } from './highp_math.js';
+import { glMatrix, mat4, vec3, vec4 } from 'gl-matrix';
 glMatrix.setMatrixArrayType(Array);
 
 export default class Frustum {
