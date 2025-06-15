@@ -13,12 +13,16 @@ export function vec3_normalize(v) {
     return vec3.normalize(vec3.create(), v);
 }
 
-export function vec3_cross(v1,v2) {
+export function vec3_cross(v1, v2) {
     return vec3.cross(vec3.create(), v1, v2);
 }
 
 export function vec3_sub(v1, v2) {
     return vec3.subtract(vec3.create(), v1, v2);
+}
+
+export function vec3_div(v1, v2) {
+    return vec3.divide(vec3.create(), v1, v2);
 }
 
 export function vec3_t4(v, d = 1) {

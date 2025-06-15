@@ -1,6 +1,8 @@
-import { vec3, vec4, mat4, glMatrix } from "gl-matrix";
+import { glMatrix, mat4, vec3, vec4 } from "gl-matrix";
 import proj4 from "proj4";
-import { EPSG_4326, EPSG_4978 } from "./proj.js";
+import { vec4_t3 } from "./glmatrix_utils.js";
+import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
+import Scene from "./scene.js";
 glMatrix.setMatrixArrayType(Array);
 
 /**
@@ -20,7 +22,11 @@ class Camera {
     #invViewMtx = mat4.create();
     #changeFunc = [];
 
-    constructor(from, to, up) {
+    /**@type {Scene}*/
+    scene = null;
+
+    constructor(scene, from, to, up) {
+        this.scene = scene;
         this.setFrom(from);
         this.setTo(to);
         this.setUp(up);
@@ -73,13 +79,20 @@ class Camera {
     */
     round(dx, dy) {
 
+        const [rx, ry] = this.getResolution();
+        const lx = -dx * rx;
+        const ly = -dy * ry;
+
+        const ax = Math.atan(lx / EARTH_RADIUS);
+        const ay = Math.atan(ly / EARTH_RADIUS);
+
         const viewFrom4 = vec4.transformMat4(vec4.create(), this.#from, this.#viewMtx);
         const viewTo4 = vec4.transformMat4(vec4.create(), this.#to, this.#viewMtx);
         const viewFrom3 = this._vec3(viewFrom4);
         const viewTo3 = this._vec3(viewTo4);
 
-        vec3.rotateY(viewFrom3, viewFrom3, viewTo3, dx); // 绕Y轴旋转dx
-        vec3.rotateX(viewFrom3, viewFrom3, viewTo3, dy); // 绕x轴旋转dy
+        vec3.rotateY(viewFrom3, viewFrom3, viewTo3, ax); // 绕Y轴旋转dx
+        vec3.rotateX(viewFrom3, viewFrom3, viewTo3, ay); // 绕x轴旋转dy
 
         vec4.set(viewFrom4, viewFrom3[0], viewFrom3[1], viewFrom3[2], 1);
         vec4.transformMat4(this.#from, viewFrom4, this.#invViewMtx);
@@ -97,6 +110,7 @@ class Camera {
      * @todo 考虑相机极低，瓦片变成back的情况
     */
     zoom(f) {
+
         const d = vec4.create();
         const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, Array.from(this.#from.slice(0, 3)));
         const toLonLatAlt = [fromLonLatAlt[0], fromLonLatAlt[1], 1];
@@ -144,6 +158,47 @@ class Camera {
 
     getFrom() {
         return this.#from;
+    }
+
+    getLevel() {
+
+    }
+
+    getHeightToSurface() {
+        const from = proj4(EPSG_4978, EPSG_4326, vec4_t3(this.#from));
+        return from[2];
+    }
+
+    getViewDistanceToSurface() {
+        //TODO
+    }
+
+    /**  
+     * @todo 暂时不考虑视角倾斜
+    */
+    getResolution() {
+        const projection = this.scene.getProjection();
+        const viewWidth = this.scene.getViewWidth();
+        const viewHeight = this.scene.getViewHeight();
+        const height = this.getHeightToSurface();
+        const half_foy = projection.fovy / 2.0;
+        const half_fox = projection.getFovx() / 2.0;
+        const h = height * Math.tan(half_foy) * 2;
+        const v = height * Math.tan(half_fox) * 2;
+        return [v / viewWidth, h / viewHeight];
+    }
+
+    getFieldFromEarthCenter() {
+        const projection = this.scene.getProjection();
+        const height = this.getHeightToSurface();
+        const half_foy = projection.fovy / 2.0;
+        const half_fox = projection.getFovx() / 2.0;
+        const vlength = height * Math.tan(half_foy);
+        const hlength = height * Math.tan(half_fox);
+        const radius = EARTH_RADIUS;
+        const fieldx = Math.atan(hlength / radius) * 2;
+        const fieldy = Math.atan(vlength / radius) * 2;
+        return [fieldx, fieldy];
     }
 
 
@@ -197,7 +252,7 @@ export class CameraMouseControl {
             if (this.leftButtonDown) {
                 const dx = e.clientX - that.lastMouseX;
                 const dy = e.clientY - that.lastMouseY;
-                that.camera.round(-dx / 200, -dy / 200);
+                that.camera.round(dx, dy);
             } else if (this.wheelButtonDown) {
                 e.preventDefault();
                 const dx = e.clientX - that.lastMouseX;

@@ -5,6 +5,7 @@ import { TileMesher, TileSource } from "./maptiler.js";
 import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
 import tileFragSource from "./tile.frag";
 import tileVertSource from "./tile.vert";
+import { vec4_t3 } from "./glmatrix_utils.js";
 
 /**
  * @param {WebGL2RenderingContext} gl 
@@ -246,8 +247,12 @@ export class TileProvider {
 
             if (!that.isStop()) {
                 if (info === undefined || (info["type"] === 'zoom' && that.curlevel !== level) || info["type"] === 'move' || info["type"] === 'round') {
-                    console.log("LEVEL:", level);
+
                     that.curlevel = level;
+
+                    const from = camera.getFrom();
+                    const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, vec4_t3(from));
+                    console.log("LEVEL:", level, "FROM: ", fromLonLatAlt);
 
                     that.meshes0 = [];
                     that.meshes1 = [];

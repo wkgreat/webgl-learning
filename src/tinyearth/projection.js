@@ -8,8 +8,10 @@ class Projection {
     near = 0.1;
     far = 1E10;
     projMtx = mat4.create();
+    scene = null;
 
-    constructor(fovy, aspect, near, far) {
+    constructor(scene, fovy, aspect, near, far) {
+        this.scene = scene;
         this.fovy = fovy;
         this.aspect = aspect;
         this.near = near;
@@ -22,6 +24,13 @@ class Projection {
 
     perspective() {
         return mat4.perspective(this.projMtx, this.fovy, this.aspect, this.near, this.far);
+    }
+
+    getFovx() {
+        const half_fovy = this.fovy / 2;
+        const t = Math.tan(half_fovy)
+        const half_fovx = Math.atan(t * this.aspect)
+        return 2 * half_fovx;
     }
 
 };

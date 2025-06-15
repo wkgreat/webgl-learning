@@ -5,7 +5,6 @@ import Camera from './camera';
 import { buildFrustum } from './frustum';
 import { Plane, planeCrossPlane, Ray, rayCrossTriangle, Triangle } from './geometry';
 import { mat4_inv, mat4_mul, vec3_add, vec3_normalize, vec3_scale, vec3_sub, vec3_t4, vec3_t4_affine, vec4_t3 } from './glmatrix_utils';
-import math, { math_v3tv4, math_v4tv3 } from './highp_math';
 import { EPSG_4326, EPSG_4978 } from './proj';
 import Projection from './projection';
 

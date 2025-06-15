@@ -1,13 +1,12 @@
 import { mat4 } from "gl-matrix";
-import proj4 from "proj4";
-import Camera, { CameraMouseControl } from "./camera.js";
 import { buildFrustum } from "./frustum.js";
-import { EPSG_4326, EPSG_4978 } from "./proj.js";
-import Projection from "./projection.js";
+import Scene from "./scene.js";
 import { getSunPositionECEF } from "./sun.js";
 import { addTileProviderHelper, createTileProgram, createTileProgramBuffer, drawTileMesh, TileProvider } from "./tilerender.js";
 import Timer, { addTimeHelper } from "./timer.js";
 import "./tinyearth.css";
+import proj4 from "proj4";
+import { EPSG_4326, EPSG_4978 } from "./proj.js";
 
 let width = 1000;
 let height = 500;
@@ -59,20 +58,34 @@ async function draw(gl, canvas) {
     const cameraFrom = proj4(EPSG_4326, EPSG_4978, [118.767335, 32.050471, 1E7]);
     const cameraTo = [0, 0, 0];
     const cameraUp = [0, 0, 1];
-    const camera = new Camera(cameraFrom, cameraTo, cameraUp);
-    const control = new CameraMouseControl(camera, canvas);
-    control.enable();
 
-    const projection = new Projection(Math.PI / 3, width / height, 0.1, 1E10);
+    const scene = new Scene({
+        camera: {
+            from: cameraFrom,
+            to: cameraTo,
+            up: cameraUp
+        },
+        projection: {
+            fovy: Math.PI / 3,
+            near: 0.1,
+            far: 1E10
+        },
+        viewport: {
+            width: width,
+            height: height
+        }
+    });
+
+    scene.addCameraControl(canvas);
 
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clearDepth(1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-    // const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+    // const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+    const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
     // const url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
-    const tileProvider = new TileProvider(url, camera);
+    const tileProvider = new TileProvider(url, scene.getCamera());
     addTileProviderHelper(document.getElementById("helper"), tileProvider);
 
     const sunPos = getSunPositionECEF();
@@ -97,8 +110,9 @@ async function draw(gl, canvas) {
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        projection.setAspect(width / height);
-        const projMtx = projection.perspective();
+        scene.setViewWidth(width);
+        scene.setViewHeight(height);
+        const projMtx = scene.getProjection().perspective();
 
         currentFrameT = t;
         let dt = Math.trunc((t - lastFrameT));
@@ -109,11 +123,11 @@ async function draw(gl, canvas) {
 
         gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
 
-        const frustum = buildFrustum(projection.perspective(), camera.getMatrix().viewMtx, camera.getFrom());
+        const frustum = buildFrustum(scene.getProjection().perspective(), scene.getCamera().getMatrix().viewMtx, scene.getCamera().getFrom());
         tileProvider.setFrustum(frustum);
 
         for (let mesh of tileProvider.getMeshes()) {
-            drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera, projMtx);
+            drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, scene.getCamera(), projMtx);
         }
 
         lastFrameT = currentFrameT;

@@ -3,7 +3,7 @@ import proj4 from "proj4";
 import { loadImage } from "../common/imageutils.js";
 import Frustum from "./frustum.js";
 import { Plane, planeCrossPlane, pointOutSidePlane, rayCrossTriangle, Triangle } from "./geometry.js";
-import { vec3_normalize, vec3_sub, vec3_t4 } from "./glmatrix_utils.js";
+import { vec3_add, vec3_normalize, vec3_sub, vec3_t4 } from "./glmatrix_utils.js";
 import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
 glMatrix.setMatrixArrayType(Array);
 
@@ -110,6 +110,11 @@ export class TileSource {
             const tile = tiles.shift();
 
             testFlag = tileIsTest(tile);
+
+            // if (zmax >= 19 && testFlag) {
+            //     debugger;
+            // }
+
             if (frustum) {
                 if (tile.tileIsBack(frustum)) {
                     if (testFlag) {
@@ -297,7 +302,17 @@ export class Tile {
         const vp2 = vec3_sub(viewpoint, p2);
         const vp3 = vec3_sub(viewpoint, p3);
 
-        return vec3.dot(sp0, vp0) < 0 && vec3.dot(sp1, vp1) < 0 && vec3.dot(sp2, vp2) < 0 && vec3.dot(sp3, vp3) < 0;
+        const d0 = vec3.dot(sp0, vp0);
+        const d1 = vec3.dot(sp1, vp1);
+        const d2 = vec3.dot(sp2, vp2);
+        const d3 = vec3.dot(sp3, vp3);
+
+        const cp = vec3_add(p0, vec3_add(p1, vec3_add(p2, p3)));
+        const cv0 = vec3_normalize(cp)
+        const cv1 = vec3_normalize(vec3_sub(viewpoint, cp));
+        const cd = vec3.dot(cv0, cv1);
+
+        return !(d0 >= 0 || d1 >= 0 || d2 >= 0 || d3 >= 0 || cd >= 0);
 
     }
 
@@ -388,34 +403,34 @@ export class Tile {
             }
         }
 
-        //tile拆成两个三角形
-        const triangle0 = new Triangle(points[0], points[1], points[2]);
-        const triangle1 = new Triangle(points[0], points[2], points[3]);
-        //视锥体边是否穿过三角形
-        const r0 = planeCrossPlane(leftPlane, bottomPlane);
-        const r1 = planeCrossPlane(bottomPlane, rightPlane);
-        const r2 = planeCrossPlane(rightPlane, topPlane);
-        const r3 = planeCrossPlane(leftPlane, topPlane);
-        const ray0 = r0.ray;
-        const ray1 = r1.ray;
-        const ray2 = r2.ray;
-        const ray3 = r3.ray;
+        // //tile拆成两个三角形
+        // const triangle0 = new Triangle(points[0], points[1], points[2]);
+        // const triangle1 = new Triangle(points[0], points[2], points[3]);
+        // //视锥体边是否穿过三角形
+        // const r0 = planeCrossPlane(leftPlane, bottomPlane);
+        // const r1 = planeCrossPlane(bottomPlane, rightPlane);
+        // const r2 = planeCrossPlane(rightPlane, topPlane);
+        // const r3 = planeCrossPlane(leftPlane, topPlane);
+        // const ray0 = r0.ray;
+        // const ray1 = r1.ray;
+        // const ray2 = r2.ray;
+        // const ray3 = r3.ray;
 
-        if (rayCrossTriangle(ray0, triangle0).cross
-            || rayCrossTriangle(ray1, triangle0).cross
-            || rayCrossTriangle(ray2, triangle0).cross
-            || rayCrossTriangle(ray3, triangle0).cross) {
-            return true;
-        }
+        // if (rayCrossTriangle(ray0, triangle0).cross
+        //     || rayCrossTriangle(ray1, triangle0).cross
+        //     || rayCrossTriangle(ray2, triangle0).cross
+        //     || rayCrossTriangle(ray3, triangle0).cross) {
+        //     return true;
+        // }
 
-        if (rayCrossTriangle(ray0, triangle1).cross
-            || rayCrossTriangle(ray1, triangle1).cross
-            || rayCrossTriangle(ray2, triangle1).cross
-            || rayCrossTriangle(ray3, triangle1).cross) {
-            return true;
-        }
+        // if (rayCrossTriangle(ray0, triangle1).cross
+        //     || rayCrossTriangle(ray1, triangle1).cross
+        //     || rayCrossTriangle(ray2, triangle1).cross
+        //     || rayCrossTriangle(ray3, triangle1).cross) {
+        //     return true;
+        // }
 
-        return false;
+        return true;
 
     }
 
@@ -444,8 +459,6 @@ export class Tile {
 
 //
 export class TileMesher {
-
-    static toMesh(tile, level, targetProj, frustum) {}
 
     static toMesh(tile, level, targetProj) {
         const vertices = [];
