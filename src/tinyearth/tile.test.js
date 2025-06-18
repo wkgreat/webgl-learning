@@ -6,6 +6,7 @@ import { buildFrustum } from './frustum';
 import { Tile } from './maptiler';
 import { EPSG_3857, EPSG_4326, EPSG_4978 } from './proj';
 import Projection from './projection';
+import { TileNode, TileTree } from './tilerender';
 
 describe("tile", () => {
 
@@ -88,5 +89,49 @@ describe("tile", () => {
 
 
     });
+
+});
+
+
+describe("TileTree", () => {
+
+    test("tile_tree_add", () => {
+
+        const tree = new TileTree();
+
+        const tile = new Tile(0, 0, 1, "");
+
+        tree.addTile(tile);
+
+        expect(tree.root.children.length === 4).toBeTruthy();
+
+        const node = tree.getTileNode(1, 0, 0);
+
+        expect(node).toBeInstanceOf(TileNode);
+        expect(node.key.z === 1).toBeTruthy();
+        expect(node.key.x === 0).toBeTruthy();
+        expect(node.key.y === 0).toBeTruthy();
+        expect(node.tile).toBe(tile);
+
+        let tn = 0;
+        let hn = 0;
+        let mn = 0;
+        tree.forEachTilesOfLevel(1, (tile) => {
+            tn += 1;
+            if (tile) {
+                hn += 1;
+                expect(tile.z === 1).toBeTruthy();
+                expect(tile.x === 0).toBeTruthy();
+                expect(tile.y === 0).toBeTruthy();
+            } else {
+                mn += 1;
+            }
+        })
+
+        expect(tn === 4).toBeTruthy();
+        expect(hn === 1).toBeTruthy();
+        expect(mn === 3).toBeTruthy();
+
+    })
 
 });

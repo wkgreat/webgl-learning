@@ -1,11 +1,12 @@
 import { mat4, vec4 } from "gl-matrix";
 import proj4 from "proj4";
 import Camera from "./camera.js";
-import { TileMesher, TileSource } from "./maptiler.js";
+import { Tile, TileMesher, TileSource } from "./maptiler.js";
 import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
 import tileFragSource from "./tile.frag";
 import tileVertSource from "./tile.vert";
 import { vec4_t3 } from "./glmatrix_utils.js";
+import { im } from "mathjs";
 
 /**
  * @param {WebGL2RenderingContext} gl 
@@ -123,32 +124,216 @@ export function setTileProgramTextureData(gl, bufferInfo, image) {
  * @param {WebGL2RenderingContext} gl
  * @param {object} programInfo
  * @param {object} bufferInfo
- * @param {object} mesh
+ * @param {Tile} tile
  * @param {mat4} modelMtx
  * @param {Camera} camera
  * @param {mat4} projMtx       
 */
-export function drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, camera, projMtx) {
+export function drawTileMesh(gl, programInfo, bufferInfo, tile, modelMtx, camera, projMtx) {
 
-    gl.useProgram(programInfo.program);
 
-    setTileProgramBufferData(gl, bufferInfo, mesh.vertices);
-    setTileProgramTextureData(gl, bufferInfo, mesh.texImage);
+    if (tile.ready) {
+        gl.useProgram(programInfo.program);
 
-    gl.vertexAttribPointer(programInfo.a_position, 3, gl.FLOAT, false, (3 + 2 + 3) * 4, 0); // 设置属性指针
-    gl.enableVertexAttribArray(programInfo.a_position); // 激活属性
+        setTileProgramBufferData(gl, bufferInfo, tile.mesh);
+        setTileProgramTextureData(gl, bufferInfo, tile.image);
 
-    gl.vertexAttribPointer(programInfo.a_texcoord, 2, gl.FLOAT, false, (3 + 2 + 3) * 4, 3 * 4); // 设置属性指针
-    gl.enableVertexAttribArray(programInfo.a_texcoord); // 激活属性
+        gl.vertexAttribPointer(programInfo.a_position, 3, gl.FLOAT, false, (3 + 2 + 3) * 4, 0); // 设置属性指针
+        gl.enableVertexAttribArray(programInfo.a_position); // 激活属性
 
-    gl.vertexAttribPointer(programInfo.a_normal, 3, gl.FLOAT, false, (3 + 2 + 3) * 4, (3 + 2) * 4); // 设置属性指针
-    gl.enableVertexAttribArray(programInfo.a_normal); // 激活属性
+        gl.vertexAttribPointer(programInfo.a_texcoord, 2, gl.FLOAT, false, (3 + 2 + 3) * 4, 3 * 4); // 设置属性指针
+        gl.enableVertexAttribArray(programInfo.a_texcoord); // 激活属性
 
-    gl.uniformMatrix4fv(programInfo.u_modelMtx, false, modelMtx);
-    gl.uniformMatrix4fv(programInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
-    gl.uniformMatrix4fv(programInfo.u_projMtx, false, projMtx);
+        gl.vertexAttribPointer(programInfo.a_normal, 3, gl.FLOAT, false, (3 + 2 + 3) * 4, (3 + 2) * 4); // 设置属性指针
+        gl.enableVertexAttribArray(programInfo.a_normal); // 激活属性
 
-    gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.numElements / 8);
+        gl.uniformMatrix4fv(programInfo.u_modelMtx, false, modelMtx);
+        gl.uniformMatrix4fv(programInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
+        gl.uniformMatrix4fv(programInfo.u_projMtx, false, projMtx);
+
+        gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.numElements / 8);
+    }
+
+}
+
+export class TileNode {
+
+    /** @type {{z:number,x:number,y:number}}*/
+    key = { z: 0, x: 0, y: 0 };
+    /* @type {Tile} */
+    tile = null;
+    /**@type {TileNode[]} */
+    children = [];
+
+    /**@param {Tile} tile */
+    static createTileNode(tile) {
+        const node = new TileNode();
+        node.key = [tile.z, tile.x, this.y];
+        node.tile = tile;
+        node.children = [];
+        return node;
+    }
+    static createEmptyTileNode(z, x, y) {
+        const node = new TileNode();
+        node.key = { z, x, y };
+        node.tile = null;
+        node.children = [];
+        return node;
+    }
+
+}
+
+
+export class TileTree {
+
+    /**@type {TileNode} */
+    root = TileNode.createEmptyTileNode(0, 0, 0);
+
+    /**
+     * @param {Tile} tile 
+    */
+    addTile(tile) {
+        this.#addTileRec(this.root, tile);
+    }
+
+    /**
+     * @param {TileNode} curNode
+     * @param {Tile} tile  
+    */
+    #addTileRec(curNode, tile) {
+        if (tile.z === curNode.key.z) {
+            if (tile.x === curNode.key.x && tile.y === curNode.key.y) {
+                curNode.tile = tile;
+            } else {
+                return;
+            }
+        } else if (curNode.key.z < tile.z) {
+
+            const dz = tile.z - curNode.key.z;
+            const px = tile.x >> dz;
+            const py = tile.y >> dz;
+
+            if (px !== curNode.key.x || py !== curNode.key.y) {
+                return;
+            }
+
+            if (curNode.children === null) {
+                curNode.children = [];
+            }
+
+            if (curNode.children.length === 0) {
+
+                const cz = curNode.key.z;
+                const cx = curNode.key.x;
+                const cy = curNode.key.y;
+
+                curNode.children.push(TileNode.createEmptyTileNode(cz + 1, cx << 1, cy << 1));
+                curNode.children.push(TileNode.createEmptyTileNode(cz + 1, cx << 1 | 1, cy << 1));
+                curNode.children.push(TileNode.createEmptyTileNode(cz + 1, cx << 1, cy << 1 | 1));
+                curNode.children.push(TileNode.createEmptyTileNode(cz + 1, cx << 1 | 1, cy << 1 | 1));
+
+            }
+
+            for (let node of curNode.children) {
+                this.#addTileRec(node, tile);
+            }
+
+        } else {
+            console.error("should not be here.");
+            return;
+        }
+    }
+
+    /**
+     * @param {number} z
+     * @param {(Tile)=>{void}} callback  
+    */
+    forEachTilesOfLevel(z, callback) {
+        this.#forEachTilesOfLevel(this.root, z, callback);
+    }
+
+    /**
+     * @param {TileNode} curNode 
+     * @param {number} z
+     * @param {(Tile)=>{void}} callback  
+    */
+    #forEachTilesOfLevel(curNode, z, callback) {
+        if (z === curNode.key.z) {
+            callback(curNode.tile);
+        } else if (curNode.key.z < z) {
+            for (let node of curNode.children) {
+                this.#forEachTilesOfLevel(node, z, callback);
+            }
+        } else {
+            console.error("should not be here.");
+        }
+    }
+
+    /**
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z
+     * @returns {TileNode|null}   
+    */
+    getTileNode(z, x, y) {
+
+        return this.#getTileNodeRec(this.root, z, x, y);
+
+    }
+
+    /**
+     * @param {TileNode|null} curnode
+     * @param {number} x
+     * @param {number} y
+     * @param {number} z 
+     * @returns {TileNode|null}    
+    */
+    #getTileNodeRec(curnode, z, x, y) {
+        if (curnode == null) {
+            return null;
+        } else if (curnode.key.z > z) {
+            return null;
+        } else if (curnode.key.z === z) {
+            if (curnode.key.x === x && curnode.key.y === y) {
+                return curnode;
+            } else {
+                return null;
+            }
+        } else {
+            const px = x >> (z - curnode.key.z);
+            const py = y >> (z - curnode.key.z);
+            if (curnode.key.x !== px || curnode.key.y !== py) {
+                return null;
+            } else {
+                const children = curnode.children;
+                if (!children) {
+                    return null;
+                }
+                let c0 = this.#getTileNodeRec(children[0], z, x, y);
+                if (c0 !== null) {
+                    return c0;
+                }
+                let c1 = this.#getTileNodeRec(children[1], z, x, y);
+                if (c1 !== null) {
+                    return c1;
+                }
+                let c2 = this.#getTileNodeRec(children[2], z, x, y);
+                if (c2 !== null) {
+                    return c2;
+                }
+                let c3 = this.#getTileNodeRec(children[3], z, x, y);
+                if (c3 !== null) {
+                    return c3;
+                }
+                return null;
+            }
+        }
+    }
+
+    vaccum() {
+        //TODO 定期清理不用的tile
+    }
+
 }
 
 
@@ -157,10 +342,9 @@ export class TileProvider {
     url = "";
     camera = null;
     curlevel = 0;
-    whichList = 0;
-    meshes0 = [];
-    meshes1 = [];
     tileSource = null;
+    /** @type {TileTree} */
+    tiletree = null;
 
     #stop = false;
 
@@ -168,7 +352,7 @@ export class TileProvider {
      * @type {{left:vec4,right:vec4,bottom:vec4,top:vec4,near:vec4,far:vec4}|null}
     */
     frustum = null;
-    callback = this.provideCallbackGen();
+    callback = null;
 
     /**
      * @param {Camera} camera 
@@ -176,7 +360,9 @@ export class TileProvider {
     constructor(url, camera) {
         this.url = url;
         this.tileSource = new TileSource(url);
+        this.tiletree = new TileTree();
         this.camera = camera;
+        this.callback = this.provideCallbackGen();
         this.callback(camera);
         camera.addOnchangeEeventListener(this.callback);
     }
@@ -187,22 +373,6 @@ export class TileProvider {
     setFrustum(frustum) {
         this.frustum = frustum;
         this.tileSource.setFrustum(frustum);
-    }
-
-    switchList() {
-        if (this.whichList === 0) {
-            this.whichList = 1;
-        } else {
-            this.whichList = 0;
-        }
-    }
-
-    getMeshes() {
-        if (this.whichList === 0) {
-            return this.meshes0;
-        } else {
-            return this.meshes1;
-        }
     }
 
     stop() {
@@ -254,17 +424,9 @@ export class TileProvider {
                     const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, vec4_t3(from));
                     console.log("LEVEL:", level, "FROM: ", fromLonLatAlt);
 
-                    that.meshes0 = [];
-                    that.meshes1 = [];
-                    that.switchList();
-
                     that.tileSource.fetchTilesOfLevelAsync(level, (tile) => {
                         if (tile) {
-                            if (that.whichList === 0) {
-                                that.meshes0.push(TileMesher.toMesh(tile, 4, EPSG_4978));
-                            } else {
-                                that.meshes1.push(TileMesher.toMesh(tile, 4, EPSG_4978));
-                            }
+                            that.tiletree.addTile(tile);
                         }
                     });
                 }

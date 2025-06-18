@@ -67,7 +67,7 @@ export class TileSource {
                 return null;
             }
         }
-        await tile.fetchTile();
+        await tile.toMesh();
         tile.provider = this;
         return tile;
     }
@@ -195,7 +195,11 @@ export class Tile {
     urltem = "";
     url = "";
     image = null;
-    provider = null
+    provider = null;
+    /**@type {boolean}*/
+    ready = false;
+    /**@type {TileMesh|null}*/
+    mesh = null;
 
     constructor(x, y, z, url) {
         this.x = x;
@@ -448,12 +452,19 @@ export class Tile {
     async fetchTile() {
         const image = await loadImage(this.url);
         this.image = image;
+        this.ready = true;
         return this.image;
     }
 
     center() {
         const ext = this.extent();
         return [(ext[0] + ext[2]) / 2, (ext[1] + ext[3]) / 2];
+    }
+
+    async toMesh() {
+        await this.fetchTile();
+        const data = TileMesher.toMesh(this, 4, EPSG_4978);
+        this.mesh = data.vertices;
     }
 }
 

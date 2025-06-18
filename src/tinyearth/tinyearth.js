@@ -126,9 +126,11 @@ async function draw(gl, canvas) {
         const frustum = buildFrustum(scene.getProjection().perspective(), scene.getCamera().getMatrix().viewMtx, scene.getCamera().getFrom());
         tileProvider.setFrustum(frustum);
 
-        for (let mesh of tileProvider.getMeshes()) {
-            drawTileMesh(gl, programInfo, bufferInfo, mesh, modelMtx, scene.getCamera(), projMtx);
-        }
+        tileProvider.tiletree.forEachTilesOfLevel(tileProvider.curlevel, (tile) => {
+            if (tile && tile.ready) {
+                drawTileMesh(gl, programInfo, bufferInfo, tile, modelMtx, scene.getCamera(), projMtx);
+            }
+        });
 
         lastFrameT = currentFrameT;
         requestAnimationFrame(dynamicDraw);
