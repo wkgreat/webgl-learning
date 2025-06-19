@@ -21,15 +21,17 @@ export default class Timer {
     }
 
     tick(frameTime) {
-        this.#setCurrentFrameTime(frameTime);
-        let dt = Math.trunc((frameTime - this.getLastFrameTime()));
-        this.#addTime(dt);
-        if (this.eventBus) {
-            this.eventBus.fire(EVENT_TIMER_TICK, this);
-        } else {
-            console.warn("Time eventBus is NULL!");
+        if (this.running) {
+            this.#setCurrentFrameTime(frameTime);
+            let dt = Math.trunc((frameTime - this.getLastFrameTime()));
+            this.#addTime(dt);
+            if (this.eventBus) {
+                this.eventBus.fire(EVENT_TIMER_TICK, this);
+            } else {
+                console.warn("Time eventBus is NULL!");
+            }
+            this.#setLastFrameTime(this.getCurrentFrameTime());
         }
-        this.#setLastFrameTime(this.getCurrentFrameTime());
     }
 
     #addTime(millseconds) {

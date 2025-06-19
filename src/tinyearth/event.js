@@ -23,8 +23,8 @@ export default class EventBus {
         let a = this.callbackMap[eventName];
         if (!a) {
             this.callbackMap[eventName] = [];
+            a = this.callbackMap[eventName];
         }
-        a = this.callbackMap[eventName];
         a.push(callbackInfo);
         return callbackInfo.uuid;
 
