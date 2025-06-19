@@ -7,6 +7,7 @@ import tileFragSource from "./tile.frag";
 import tileVertSource from "./tile.vert";
 import { vec4_t3 } from "./glmatrix_utils.js";
 import { im } from "mathjs";
+import Frustum from "./frustum.js";
 
 /**
  * @param {WebGL2RenderingContext} gl 
@@ -246,7 +247,8 @@ export class TileTree {
 
     /**
      * @param {number} z
-     * @param {(Tile)=>{void}} callback  
+     * @param {(tile:Tile)=>void} callback  
+     * @TODO 根据视锥体剪枝
     */
     forEachTilesOfLevel(z, callback) {
         this.#forEachTilesOfLevel(this.root, z, callback);
@@ -255,7 +257,7 @@ export class TileTree {
     /**
      * @param {TileNode} curNode 
      * @param {number} z
-     * @param {(Tile)=>{void}} callback  
+     * @param {(tile:Tile)=>void} callback  
     */
     #forEachTilesOfLevel(curNode, z, callback) {
         if (z === curNode.key.z) {
@@ -267,6 +269,15 @@ export class TileTree {
         } else {
             console.error("should not be here.");
         }
+    }
+
+    /**
+     * @param {number} level
+     * @param {Frustum} frustum
+     * @returns {TileNode[]}
+    */
+    getTileNodeByFrustum(level, frustum) {
+        // TODO
     }
 
     /**
@@ -359,7 +370,7 @@ export class TileProvider {
     */
     constructor(url, camera) {
         this.url = url;
-        this.tileSource = new TileSource(url);
+        this.tileSource = new TileSource(url); // TODO 将TileTree传入，如果有tile，不必再重复请求了
         this.tiletree = new TileTree();
         this.camera = camera;
         this.callback = this.provideCallbackGen();
