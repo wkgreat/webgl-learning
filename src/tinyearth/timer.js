@@ -1,25 +1,42 @@
+export const EVENT_TIMER_TICK = "timer:tick";
+
 export default class Timer {
 
     currentTime = null;
     multipler = 1;
     running = false;
     onTimeChange = null;
+    lastFrameTime = 0;
+    currentFrameTime = 0;
+
+    /**@type {EventBus|null}*/
+    eventBus = null;
 
     constructor(millseconds) {
         this.currentTime = millseconds;
     }
-    addTime(millseconds) {
-        if (this.running) {
-            this.currentTime += millseconds * this.multipler;
-            this.onTimeChange && this.onTimeChange(this.currentTime);
-        }
 
+    setEventBus(eventBus) {
+        this.eventBus = eventBus;
     }
-    subTime(millseconds) {
-        if (this.running) {
-            this.currentTime -= millseconds * this.multipler;
-            this.onTimeChange && this.onTimeChange(this.currentTime);
+
+    tick(frameTime) {
+        this.#setCurrentFrameTime(frameTime);
+        let dt = Math.trunc((frameTime - this.getLastFrameTime()));
+        this.#addTime(dt);
+        if (this.eventBus) {
+            this.eventBus.fire(EVENT_TIMER_TICK, this);
+        } else {
+            console.warn("Time eventBus is NULL!");
         }
+        this.#setLastFrameTime(this.getCurrentFrameTime());
+    }
+
+    #addTime(millseconds) {
+        this.currentTime += millseconds * this.multipler;
+    }
+    #subTime(millseconds) {
+        this.currentTime -= millseconds * this.multipler;
     }
     getTime() {
         return this.currentTime;
@@ -39,8 +56,17 @@ export default class Timer {
     stop() {
         this.running = false;
     }
-    setOnTimeChange(callback) {
-        this.onTimeChange = callback;
+    #setLastFrameTime(t) {
+        this.lastFrameTime = t;
+    }
+    #setCurrentFrameTime(t) {
+        this.currentFrameTime = t;
+    }
+    getLastFrameTime() {
+        return this.lastFrameTime;
+    }
+    getCurrentFrameTime() {
+        return this.currentFrameTime;
     }
 
 }
@@ -67,9 +93,14 @@ export function addTimeHelper(timer, root) {
     const multiplerInput = document.getElementById("timer-multipler-input");
     const startButton = document.getElementById("timer-start-button");
 
-    timer.setOnTimeChange((t) => {
-        timeLabel.innerText = (new Date(t)).toISOString();
-    })
+    if (timer.eventBus) {
+        timer.eventBus.addEventListener(EVENT_TIMER_TICK, {
+            callback: (_timer) => {
+                timeLabel.innerText = _timer.getDate().toISOString();
+            }
+        })
+    }
+
 
     multiplerInput.value = timer.getMultipler();
     multiplerInput.addEventListener('input', () => {

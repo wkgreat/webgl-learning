@@ -55,3 +55,15 @@ export function getSunPositionECEF(date = new Date()) {
     return sunEcef;
 }
 
+export class Sun {
+
+    position = null;
+
+    constructor() {}
+
+    refreshSunPosition(date) {
+        this.position = getSunPositionECEF(date);
+    }
+
+}
+
