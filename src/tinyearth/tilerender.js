@@ -1,160 +1,165 @@
 import { mat4, vec4 } from "gl-matrix";
 import proj4 from "proj4";
 import Camera from "./camera.js";
-import { Tile, TileMesher, TileSource } from "./maptiler.js";
+import { Tile, TileSource } from "./maptiler.js";
 import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
 import tileFragSource from "./tile.frag";
 import tileVertSource from "./tile.vert";
 import { vec4_t3 } from "./glmatrix_utils.js";
-import { im } from "mathjs";
 import Frustum from "./frustum.js";
+import TinyEarth from "./tinyearth.js";
 
-/**
- * @param {WebGL2RenderingContext} gl 
-*/
-export function createTileProgram(gl) {
-    /* 创建程序 */
-    const program = gl.createProgram();
+export class GlobeTileProgram {
 
-    let success;
 
-    /* 程序加载着色器 */
-    const vertShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertShader, tileVertSource);
-    gl.compileShader(vertShader);
-    gl.attachShader(program, vertShader);
+    /**@type {WebGLRenderingContext|null}*/
+    gl = null;
 
-    success = gl.getShaderParameter(vertShader, gl.COMPILE_STATUS);
-    if (!success) {
-        const error = gl.getShaderInfoLog(vertShader);
-        console.error('vertShader编译失败: ', error);
+    /**@type {TinyEarth|null}*/
+    tinyearth = null;
+
+    /**@type {WebGLProgram|null}*/
+    program = null;
+
+    buffers = {};
+
+    numElements = 0;
+
+    constructor(tinyearth) {
+        this.tinyearth = tinyearth;
+        this.gl = this.tinyearth.gl;
+        this.program = this.createTileProgram();
+        this.createBuffer();
     }
 
-    const fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragShader, tileFragSource);
-    gl.compileShader(fragShader);
-    gl.attachShader(program, fragShader);
+    createTileProgram() {
+        /* 创建程序 */
+        const program = this.gl.createProgram();
 
-    success = gl.getShaderParameter(fragShader, gl.COMPILE_STATUS);
-    if (!success) {
-        const error = gl.getShaderInfoLog(fragShader);
-        console.error('fragShader编译失败: ', error);
-    }
+        let success;
 
-    gl.linkProgram(program);
+        /* 程序加载着色器 */
+        const vertShader = this.gl.createShader(this.gl.VERTEX_SHADER);
+        this.gl.shaderSource(vertShader, tileVertSource);
+        this.gl.compileShader(vertShader);
+        this.gl.attachShader(program, vertShader);
 
-    success = gl.getProgramParameter(program, gl.LINK_STATUS);
-    if (!success) {
-        const error = gl.getProgramInfoLog(program);
-        console.error('program 连接失败失败: ', error);
-    }
-
-
-    if (!program) {
-        console.error("program is null");
-    }
-
-    gl.useProgram(program);
-
-    return {
-        program: program,
-        a_position: gl.getAttribLocation(program, "a_position"),
-        a_texcoord: gl.getAttribLocation(program, "a_texcoord"),
-        a_normal: gl.getAttribLocation(program, "a_normal"),
-        u_modelMtx: gl.getUniformLocation(program, "u_modelMtx"),
-        u_viewMtx: gl.getUniformLocation(program, "u_viewMtx"),
-        u_projMtx: gl.getUniformLocation(program, "u_projMtx"),
-        light: {
-            position: gl.getUniformLocation(program, "light.position"),
-            color: gl.getUniformLocation(program, "light.color")
-        },
-        camera: {
-            position: gl.getUniformLocation(program, "camera.position")
-        },
-        material: {
-            ambient: gl.getUniformLocation(program, "material.ambient"),
-            diffuse: gl.getUniformLocation(program, "material.diffuse"),
-            specular: gl.getUniformLocation(program, "material.specular"),
-            emission: gl.getUniformLocation(program, "material.emission"),
-            shininess: gl.getUniformLocation(program, "material.shininess"),
+        success = this.gl.getShaderParameter(vertShader, this.gl.COMPILE_STATUS);
+        if (!success) {
+            const error = this.gl.getShaderInfoLog(vertShader);
+            console.error('vertShader编译失败: ', error);
         }
-    };
-}
 
-/**
- * @param {WebGL2RenderingContext} gl 
-*/
-export function createTileProgramBuffer(gl) {
-    const verticesBuffer = gl.createBuffer();
-    const texture = gl.createTexture();
+        const fragShader = this.gl.createShader(this.gl.FRAGMENT_SHADER);
+        this.gl.shaderSource(fragShader, tileFragSource);
+        this.gl.compileShader(fragShader);
+        this.gl.attachShader(program, fragShader);
 
-    return {
-        verticesBuffer: verticesBuffer,
-        numElements: 0,
-        texture: texture
-    }
-}
+        success = this.gl.getShaderParameter(fragShader, this.gl.COMPILE_STATUS);
+        if (!success) {
+            const error = this.gl.getShaderInfoLog(fragShader);
+            console.error('fragShader编译失败: ', error);
+        }
 
-/**
- * @param {WebGL2RenderingContext} gl 
- * @param {object} programInfo 
- * @param {object} bufferInfo 
- * @param {Array} data 
-*/
-export function setTileProgramBufferData(gl, bufferInfo, data) {
-    gl.bindBuffer(gl.ARRAY_BUFFER, bufferInfo.verticesBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
-    bufferInfo.numElements = data.length;
-}
+        this.gl.linkProgram(program);
 
-export function setTileProgramTextureData(gl, bufferInfo, image) {
-    /* 纹理 */
+        success = this.gl.getProgramParameter(program, this.gl.LINK_STATUS);
+        if (!success) {
+            const error = this.gl.getProgramInfoLog(program);
+            console.error('program 连接失败失败: ', error);
+        }
 
-    gl.bindTexture(gl.TEXTURE_2D, bufferInfo.texture);
-    //设置纹理参数
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    //纹理数据
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-}
+        if (!program) {
+            console.error("program is null");
+        }
 
-/**
- * @param {WebGL2RenderingContext} gl
- * @param {object} programInfo
- * @param {object} bufferInfo
- * @param {Tile} tile
- * @param {mat4} modelMtx
- * @param {Camera} camera
- * @param {mat4} projMtx       
-*/
-export function drawTileMesh(gl, programInfo, bufferInfo, tile, modelMtx, camera, projMtx) {
+        this.program = program;
+        return program;
 
-
-    if (tile.ready) {
-        gl.useProgram(programInfo.program);
-
-        setTileProgramBufferData(gl, bufferInfo, tile.mesh);
-        setTileProgramTextureData(gl, bufferInfo, tile.image);
-
-        gl.vertexAttribPointer(programInfo.a_position, 3, gl.FLOAT, false, (3 + 2 + 3) * 4, 0); // 设置属性指针
-        gl.enableVertexAttribArray(programInfo.a_position); // 激活属性
-
-        gl.vertexAttribPointer(programInfo.a_texcoord, 2, gl.FLOAT, false, (3 + 2 + 3) * 4, 3 * 4); // 设置属性指针
-        gl.enableVertexAttribArray(programInfo.a_texcoord); // 激活属性
-
-        gl.vertexAttribPointer(programInfo.a_normal, 3, gl.FLOAT, false, (3 + 2 + 3) * 4, (3 + 2) * 4); // 设置属性指针
-        gl.enableVertexAttribArray(programInfo.a_normal); // 激活属性
-
-        gl.uniformMatrix4fv(programInfo.u_modelMtx, false, modelMtx);
-        gl.uniformMatrix4fv(programInfo.u_viewMtx, false, camera.getMatrix().viewMtx);
-        gl.uniformMatrix4fv(programInfo.u_projMtx, false, projMtx);
-
-        gl.drawArrays(gl.TRIANGLES, 0, bufferInfo.numElements / 8);
     }
 
+    createBuffer() {
+        this.buffers["vertices"] = this.gl.createBuffer();
+        this.buffers["texture"] = this.gl.createTexture();
+    }
+
+    setUniform3f(name, v0, v1, v2) {
+        this.gl.useProgram(this.program);
+        this.gl.uniform3f(this.gl.getUniformLocation(this.program, name), v0, v1, v2);
+    }
+    setUniform4f(name, v0, v1, v2, v3) {
+        this.gl.useProgram(this.program);
+        this.gl.uniform4f(this.gl.getUniformLocation(this.program, name), v0, v1, v2, v3);
+    }
+    setUniform1f(name, v) {
+        this.gl.useProgram(this.program);
+        this.gl.uniform1f(this.gl.getUniformLocation(this.program, name), v);
+    }
+
+    /**
+     * @param {Camera} camera 
+    */
+    setMaterial(sunPos, camera) {
+        const from = camera.getFrom();
+        this.gl.useProgram(this.program);
+        this.setUniform3f("light.position", sunPos.x, sunPos.y, sunPos.z);
+        this.setUniform4f("light.color", 1.0, 1.0, 1.0, 1.0);
+        this.setUniform3f("camera.position", from[0], from[1], from[2]);
+        this.setUniform4f("material.ambient", 0.1, 0.1, 0.1, 1.0);
+        this.setUniform4f("material.diffuse", 1.0, 1.0, 1.0, 1.0);
+        this.setUniform4f("material.specular", 1.0, 1.0, 1.0, 1.0);
+        this.setUniform4f("material.emission", 0.0, 0.0, 0.0, 1.0);
+        this.setUniform1f("material.shininess", 1000);
+    }
+
+    setData(verticeData, textureData) {
+
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers["vertices"]);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, verticeData, this.gl.STATIC_DRAW);
+        this.numElements = verticeData.length;
+
+        this.gl.bindTexture(this.gl.TEXTURE_2D, this.buffers["texture"]);
+        //设置纹理参数
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+        this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+        //纹理数据
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, textureData);
+
+    }
+
+    /**
+     * @param {Tile} tile
+     * @param {mat4} modelMtx
+     * @param {Camera} camera
+     * @param {mat4} projMtx       
+    */
+    drawTileMesh(tile, modelMtx, camera, projMtx) {
+
+        if (tile.ready) {
+            this.gl.useProgram(this.program);
+
+            this.setData(tile.mesh, tile.image);
+
+            this.gl.vertexAttribPointer(this.gl.getAttribLocation(this.program, "a_position"), 3, this.gl.FLOAT, false, (3 + 2 + 3) * 4, 0); // 设置属性指针
+            this.gl.enableVertexAttribArray(this.gl.getAttribLocation(this.program, "a_position")); // 激活属性
+
+            this.gl.vertexAttribPointer(this.gl.getAttribLocation(this.program, "a_texcoord"), 2, this.gl.FLOAT, false, (3 + 2 + 3) * 4, 3 * 4); // 设置属性指针
+            this.gl.enableVertexAttribArray(this.gl.getAttribLocation(this.program, "a_texcoord")); // 激活属性
+
+            this.gl.vertexAttribPointer(this.gl.getAttribLocation(this.program, "a_normal"), 3, this.gl.FLOAT, false, (3 + 2 + 3) * 4, (3 + 2) * 4); // 设置属性指针
+            this.gl.enableVertexAttribArray(this.gl.getAttribLocation(this.program, "a_normal")); // 激活属性
+
+            this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, "u_modelMtx"), false, modelMtx);
+            this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, "u_viewMtx"), false, camera.getMatrix().viewMtx);
+            this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, "u_projMtx"), false, projMtx);
+
+            this.gl.drawArrays(this.gl.TRIANGLES, 0, this.numElements / 8);
+        }
+
+    }
 }
 
 export class TileNode {

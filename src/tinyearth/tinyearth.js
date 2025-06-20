@@ -2,7 +2,7 @@ import { mat4 } from "gl-matrix";
 import { buildFrustum } from "./frustum.js";
 import Scene from "./scene.js";
 import { getSunPositionECEF } from "./sun.js";
-import { addTileProviderHelper, createTileProgram, createTileProgramBuffer, drawTileMesh, TileProvider } from "./tilerender.js";
+import { addTileProviderHelper, createTileProgram, createTileProgramBuffer, drawTileMesh, GlobeTileProgram, TileProvider } from "./tilerender.js";
 import Timer, { addTimeHelper, EVENT_TIMER_TICK } from "./timer.js";
 import "./tinyearth.css";
 import proj4 from "proj4";
@@ -11,7 +11,7 @@ import EventBus from "./event.js";
 
 let tinyearth = null;
 
-class TinyEarth {
+export default class TinyEarth {
 
     /**@type {HTMLCanvasElement|null}*/
     canvas = null;
@@ -27,15 +27,15 @@ class TinyEarth {
     /**@type {TileProvider|null}*/
     tileProvider = null;
 
-    programInfo = null;
-
-    bufferInfo = null;
-
     viewWidth = 512;
 
     viewHeight = 512;
 
+    /**@type {EventBus|null} */
     eventBus = null;
+
+    /**@type {GlobeTileProgram|null}*/
+    globeTilePorgram = null;
 
     /**@param {HTMLCanvasElement} canvas */
     constructor(canvas) {
@@ -80,16 +80,11 @@ class TinyEarth {
         this.tileProvider = provider;
     }
 
-    addProgramInfo(programInfo) {
-        this.programInfo = programInfo;
-    }
-
-    addBufferInfo(bufferInfo) {
-        this.bufferInfo = bufferInfo;
-    }
-
     draw() {
         this.glInit();
+
+        this.globeTilePorgram = new GlobeTileProgram(this);
+        this.globeTilePorgram.setMaterial(getSunPositionECEF(this.timer.getDate()), this.scene.getCamera());
 
         let that = this;
 
@@ -97,7 +92,7 @@ class TinyEarth {
             callback: (timer) => {
                 if (timer === that.timer) {
                     const sunPos = getSunPositionECEF(timer.getDate());
-                    that.gl.uniform3f(that.programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
+                    that.globeTilePorgram.setUniform3f("light.position", sunPos.x, sunPos.y, sunPos.z);
                 }
             }
         });
@@ -112,14 +107,17 @@ class TinyEarth {
             const modelMtx = mat4.create();
             const projMtx = that.scene.getProjection().perspective();
 
-            const frustum = buildFrustum(that.scene.getProjection().perspective(), that.scene.getCamera().getMatrix().viewMtx, that.scene.getCamera().getFrom());
+            const frustum = buildFrustum(
+                that.scene.getProjection().perspective(),
+                that.scene.getCamera().getMatrix().viewMtx,
+                that.scene.getCamera().getFrom());
             that.tileProvider.setFrustum(frustum);
 
             that.timer.tick(t);
 
             that.tileProvider.tiletree.forEachTilesOfLevel(that.tileProvider.curlevel, (tile) => {
                 if (tile && tile.ready) {
-                    drawTileMesh(that.gl, that.programInfo, that.bufferInfo, tile, modelMtx, that.scene.getCamera(), projMtx);
+                    that.globeTilePorgram.drawTileMesh(tile, modelMtx, that.scene.getCamera(), projMtx);
                 }
             });
 
@@ -136,11 +134,6 @@ function main() {
     if (canvas !== null) {
 
         tinyearth = new TinyEarth(canvas);
-
-        const programInfo = createTileProgram(tinyearth.gl);
-        const bufferInfo = createTileProgramBuffer(tinyearth.gl);
-        tinyearth.addProgramInfo(programInfo);
-        tinyearth.addBufferInfo(bufferInfo);
 
         const cameraFrom = proj4(EPSG_4326, EPSG_4978, [118.767335, 32.050471, 1E7]);
         const cameraTo = [0, 0, 0];
@@ -174,17 +167,6 @@ function main() {
         addTileProviderHelper(document.getElementById("helper"), tileProvider);
 
         tinyearth.addTileProvider(tileProvider);
-
-        const sunPos = getSunPositionECEF();
-
-        tinyearth.gl.uniform3f(programInfo.light.position, sunPos.x, sunPos.y, sunPos.z);
-        tinyearth.gl.uniform4f(programInfo.light.color, 1.0, 1.0, 1.0, 1.0);
-        tinyearth.gl.uniform3f(programInfo.camera.position, cameraFrom[0], cameraFrom[1], cameraFrom[2]);
-        tinyearth.gl.uniform4f(programInfo.material.ambient, 0.1, 0.1, 0.1, 1.0);
-        tinyearth.gl.uniform4f(programInfo.material.diffuse, 1.0, 1.0, 1.0, 1.0);
-        tinyearth.gl.uniform4f(programInfo.material.specular, 1.0, 1.0, 1.0, 1.0);
-        tinyearth.gl.uniform4f(programInfo.material.emission, 0.0, 0.0, 0.0, 1.0);
-        tinyearth.gl.uniform1f(programInfo.material.shininess, 1000);;
 
         const timer = new Timer(Date.now());
         timer.setEventBus(tinyearth.eventBus);
