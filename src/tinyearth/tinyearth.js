@@ -24,9 +24,6 @@ export default class TinyEarth {
     /**@type {Timer|null}*/
     timer = null;
 
-    /**@type {TileProvider|null}*/
-    tileProvider = null;
-
     viewWidth = 512;
 
     viewHeight = 512;
@@ -40,7 +37,7 @@ export default class TinyEarth {
     /**@param {HTMLCanvasElement} canvas */
     constructor(canvas) {
         this.canvas = canvas;
-        this.gl = canvas.getContext("webgl");
+        this.gl = canvas.getContext("webgl", { alpha: true });
         canvas.height = canvas.clientHeight;
         canvas.width = canvas.clientWidth;
         this.viewHeight = canvas.height;
@@ -53,18 +50,21 @@ export default class TinyEarth {
             that.viewHeight = canvas.height;
             that.viewWidth = canvas.width;
             that.gl.viewport(0, 0, that.viewWidth, that.viewHeight);
-        })
+        });
+        this.globeTilePorgram = new GlobeTileProgram(this);
     }
 
     glInit() {
         /*清理及配置*/
-        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
         this.gl.clearDepth(1.0);
         this.gl.enable(this.gl.DEPTH_TEST);
         this.gl.enable(this.gl.CULL_FACE);
         this.gl.depthFunc(this.gl.LEQUAL);
         this.gl.viewport(0, 0, this.viewWidth, this.viewHeight);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+        this.gl.enable(this.gl.BLEND);
+        this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
     }
 
     addScene(scene) {
@@ -77,13 +77,12 @@ export default class TinyEarth {
     }
 
     addTileProvider(provider) {
-        this.tileProvider = provider;
+        this.globeTilePorgram.addTileProvider(provider);
     }
 
     draw() {
         this.glInit();
 
-        this.globeTilePorgram = new GlobeTileProgram(this);
         this.globeTilePorgram.setMaterial(getSunPositionECEF(this.timer.getDate()), this.scene.getCamera());
 
         let that = this;
@@ -98,7 +97,7 @@ export default class TinyEarth {
         });
 
         function drawFrame(t) {
-            that.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            that.gl.clearColor(0.0, 0.0, 0.0, 0.0);
             that.gl.clearDepth(1.0);
             that.gl.clear(that.gl.COLOR_BUFFER_BIT | that.gl.DEPTH_BUFFER_BIT);
             that.scene.setViewWidth(that.viewWidth);
@@ -111,15 +110,11 @@ export default class TinyEarth {
                 that.scene.getProjection().perspective(),
                 that.scene.getCamera().getMatrix().viewMtx,
                 that.scene.getCamera().getFrom());
-            that.tileProvider.setFrustum(frustum);
+            that.globeTilePorgram.setFrustum(frustum);
 
             that.timer.tick(t);
 
-            that.tileProvider.tiletree.forEachTilesOfLevel(that.tileProvider.curlevel, (tile) => {
-                if (tile && tile.ready) {
-                    that.globeTilePorgram.drawTileMesh(tile, modelMtx, that.scene.getCamera(), projMtx);
-                }
-            });
+            that.globeTilePorgram.render(modelMtx, that.scene.getCamera(), projMtx);
 
             requestAnimationFrame(drawFrame);
         }
@@ -162,11 +157,25 @@ function main() {
 
         // const url = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         // const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-        const url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
-        const tileProvider = new TileProvider(url, tinyearth.scene.getCamera());
-        addTileProviderHelper(document.getElementById("helper"), tileProvider);
+        // const url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
+        // const url = "https://demo.ldproxy.net/earthatnight/map/tiles/WebMercatorQuad/{z}/{y}/{x}?f=jpeg";
 
-        tinyearth.addTileProvider(tileProvider);
+        let url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
+        const tileProvider0 = new TileProvider(url, tinyearth.scene.getCamera());
+        tileProvider0.setMinLevel(2);
+        tileProvider0.setMaxLevel(20);
+        tileProvider0.setIsNight(false);
+        addTileProviderHelper(document.getElementById("helper"), tileProvider0);
+        tinyearth.addTileProvider(tileProvider0);
+
+        url = "https://demo.ldproxy.net/earthatnight/map/tiles/WebMercatorQuad/{z}/{y}/{x}?f=jpeg"
+        const tileProvider1 = new TileProvider(url, tinyearth.scene.getCamera());
+        tileProvider1.setOpacity(0.5);
+        tileProvider1.setMinLevel(2);
+        tileProvider1.setMaxLevel(6);
+        tileProvider1.setIsNight(true);
+        addTileProviderHelper(document.getElementById("helper"), tileProvider1);
+        tinyearth.addTileProvider(tileProvider1);
 
         const timer = new Timer(Date.now());
         timer.setEventBus(tinyearth.eventBus);

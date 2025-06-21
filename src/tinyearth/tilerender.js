@@ -25,11 +25,23 @@ export class GlobeTileProgram {
 
     numElements = 0;
 
+    /**@type {TileProvider[]}*/
+    tileProviders = [];
+
     constructor(tinyearth) {
         this.tinyearth = tinyearth;
         this.gl = this.tinyearth.gl;
         this.program = this.createTileProgram();
         this.createBuffer();
+    }
+
+    /**
+     * @param {TileProvider} tileProvider 
+    */
+    addTileProvider(tileProvider) {
+
+        this.tileProviders.push(tileProvider);
+
     }
 
     createTileProgram() {
@@ -136,7 +148,7 @@ export class GlobeTileProgram {
      * @param {Camera} camera
      * @param {mat4} projMtx       
     */
-    drawTileMesh(tile, modelMtx, camera, projMtx) {
+    drawTileMesh(tile, modelMtx, camera, projMtx, opacity = 1.0, isNight = false) {
 
         if (tile.ready) {
             this.gl.useProgram(this.program);
@@ -156,9 +168,28 @@ export class GlobeTileProgram {
             this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, "u_viewMtx"), false, camera.getMatrix().viewMtx);
             this.gl.uniformMatrix4fv(this.gl.getUniformLocation(this.program, "u_projMtx"), false, projMtx);
 
+            this.gl.uniform1f(this.gl.getUniformLocation(this.program, "u_opacity"), opacity);
+            this.gl.uniform1i(this.gl.getUniformLocation(this.program, "u_isNight"), isNight);
+
             this.gl.drawArrays(this.gl.TRIANGLES, 0, this.numElements / 8);
         }
+    }
 
+    render(modelMtx, viewMtx, projMtx) {
+        const that = this;
+        for (let provider of this.tileProviders) {
+            provider.tiletree.forEachTilesOfLevel(provider.curlevel, (tile) => {
+                if (tile && tile.ready) {
+                    that.drawTileMesh(tile, modelMtx, viewMtx, projMtx, provider.getOpacity(), provider.getIsNight());
+                }
+            });
+        }
+    }
+
+    setFrustum(frustum) {
+        for (let provider of this.tileProviders) {
+            provider.setFrustum(frustum);
+        }
     }
 }
 
@@ -356,9 +387,13 @@ export class TileTree {
 export class TileProvider {
 
     url = "";
+
     camera = null;
+
     curlevel = 0;
+
     tileSource = null;
+
     /** @type {TileTree} */
     tiletree = null;
 
@@ -368,7 +403,17 @@ export class TileProvider {
      * @type {{left:vec4,right:vec4,bottom:vec4,top:vec4,near:vec4,far:vec4}|null}
     */
     frustum = null;
+
     callback = null;
+
+    /**@type {number}*/
+    opacity = 1.0;
+
+    minLevel = 2;
+
+    maxLevel = 20;
+
+    #isNight = false;
 
     /**
      * @param {Camera} camera 
@@ -383,12 +428,40 @@ export class TileProvider {
         camera.addOnchangeEeventListener(this.callback);
     }
 
+    setMinLevel(level) {
+        this.minLevel = level;
+    }
+
+    setMaxLevel(level) {
+        this.maxLevel = level;
+    }
+
+    setIsNight(b) {
+        this.#isNight = b;
+    }
+
+    setIsNight(b) {
+        this.#isNight = b;
+    }
+
+    getIsNight() {
+        return this.#isNight;
+    }
+
     /**
      * @param {Frustum} frustum 
     */
     setFrustum(frustum) {
         this.frustum = frustum;
         this.tileSource.setFrustum(frustum);
+    }
+
+    setOpacity(opacity) {
+        this.opacity = opacity;
+    }
+
+    getOpacity() {
+        return this.opacity;
     }
 
     stop() {
@@ -416,7 +489,7 @@ export class TileProvider {
         const groundResolution = height * 2 / tileSize;
 
         const zoom = Math.log2(initialResolution / groundResolution);
-        return Math.min(Math.max(Math.floor(zoom) + 2, 2), 20);
+        return Math.min(Math.max(Math.floor(zoom) + 2, this.minLevel), this.maxLevel);
     }
 
 
@@ -438,7 +511,7 @@ export class TileProvider {
 
                     const from = camera.getFrom();
                     const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, vec4_t3(from));
-                    console.log("LEVEL:", level, "FROM: ", fromLonLatAlt);
+                    // console.log("LEVEL:", level, "FROM: ", fromLonLatAlt);
 
                     that.tileSource.fetchTilesOfLevelAsync(level, (tile) => {
                         if (tile) {
