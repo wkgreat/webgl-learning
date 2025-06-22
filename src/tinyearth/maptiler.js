@@ -5,6 +5,7 @@ import Frustum from "./frustum.js";
 import { Plane, planeCrossPlane, pointOutSidePlane, rayCrossTriangle, Triangle } from "./geometry.js";
 import { vec3_add, vec3_normalize, vec3_sub, vec3_t4 } from "./glmatrix_utils.js";
 import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
+import { TileNode, TileTree } from "./tilerender.js";
 glMatrix.setMatrixArrayType(Array);
 
 const XLIMIT = [-20037508.3427892, 20037508.3427892];
@@ -26,31 +27,6 @@ export class TileSource {
 
     constructor(url) {
         this.url = url;
-    }
-
-    /**
-     * @param {number} z z of tile
-     * @param {number} x x of tile
-     * @param {number} y y of tile
-     * @returns {Promise<Tile>}
-    */
-    async fetchTileByDataZXY(z, x, y, frustum) {
-        const tile = new Tile(x, y, z, this.url);
-        // console.log("TRIM RATIO: ", this.isBack, this.isOutside, this.isPass);
-        if (frustum) {
-            if (tile.tileIsBack(frustum)) {
-                this.isBack += 1;
-                return null;
-            }
-            if (!tile.intersectFrustum(frustum)) {
-                this.isOutside += 1;
-                return null;
-            }
-        }
-        await tile.fetchTile();
-        tile.provider = this;
-        this.isPass += 1;
-        return tile;
     }
 
     /**
@@ -87,15 +63,15 @@ export class TileSource {
                 tiles.push(new Tile(i, j, z, url, this.frustum));
             }
         }
-        const testTile = new Tile(27194, 13301, 15, url);
-        let curtile = testTile;
-        const tileStack = [];
-        while (curtile.z >= 0) {
-            tileStack.push([curtile.x, curtile.y, curtile.z]);
-            curtile = curtile.supTile();
-        }
-        let testFlag = false;
-        console.log("tilestack: ", tileStack);
+        // const testTile = new Tile(27194, 13301, 15, url);
+        // let curtile = testTile;
+        // const tileStack = [];
+        // while (curtile.z >= 0) {
+        // tileStack.push([curtile.x, curtile.y, curtile.z]);
+        // curtile = curtile.supTile();
+        // }
+        // let testFlag = false;
+        // console.log("tilestack: ", tileStack);
 
         function tileIsTest(tile) {
             for (let t of tileStack) {
@@ -109,7 +85,7 @@ export class TileSource {
         while (tiles.length !== 0 && tiles[0].z !== zmax) {
             const tile = tiles.shift();
 
-            testFlag = tileIsTest(tile);
+            // testFlag = tileIsTest(tile);
 
             // if (zmax >= 19 && testFlag) {
             //     debugger;
@@ -117,32 +93,37 @@ export class TileSource {
 
             if (frustum) {
                 if (tile.tileIsBack(frustum)) {
-                    if (testFlag) {
-                        console.log(tile.z, tile.x, tile.y, "FALSE BACK");
-                    }
+                    // if (testFlag) {
+                    //     console.log(tile.z, tile.x, tile.y, "FALSE BACK");
+                    // }
                     continue;
                 }
                 if (!tile.intersectFrustum(frustum)) {
                     // FIXME 注意，随着视锥体的缩小，递归低层级的时候，可能时tile包含视锥体（虽相交但是tile没有节点在视锥体里面，导致判断失败）
-                    if (testFlag) {
-                        console.log(tile.z, tile.x, tile.y, "FALSE OUT");
-                    }
+                    // if (testFlag) {
+                    //     console.log(tile.z, tile.x, tile.y, "FALSE OUT");
+                    // }
                     continue;
                 }
             }
-            if (testFlag) {
-                console.log(tile.z, tile.x, tile.y, "TRUE");
-            }
+            // if (testFlag) {
+            //     console.log(tile.z, tile.x, tile.y, "TRUE");
+            // }
             tiles.push(...tile.subTiles());
         }
         return tiles;
     }
 
-    fetchTilesOfLevelAsync(z, callback) {
-        const nrows = Math.pow(2, z);
-        const ncols = Math.pow(2, z);
+    /**
+     * @param {number} z
+     * @param {TileTree} tiletree
+     * @param {(tile:Tile)=>void} callback   
+    */
+    fetchTilesOfLevelAsync(z, tiletree, callback) {
 
         if (z <= 6) {
+            const nrows = Math.pow(2, z);
+            const ncols = Math.pow(2, z);
             for (let i = 0; i < ncols; ++i) {
                 for (let j = 0; j < nrows; ++j) {
                     const tile = new Tile(i, j, z, this.url);
@@ -153,29 +134,22 @@ export class TileSource {
             }
         } else {
             const tiles = this.fetchTileRec(z, this.url, this.frustum);
-            console.log("TILES LEVEL: ", z, tiles.length, this.frustum);
+            // console.log("TILES LEVEL: ", z, tiles.length, this.frustum);
             for (let tile of tiles) {
+
+                // const node = tiletree.getTileNode(tile.z, tile.x, tile.y);
+
+                // if (node && node.tile) {
+                //     callback(node.tile);
+                // } else {
                 this.fetchTileData(tile, this.frustum).then(callback).catch(e => {
                     console.error(e);
                 });
+                // }
+
+
             }
         }
-
-
-    }
-
-    async fetchTilesOfLevel(z) {
-        const nrows = Math.pow(2, z);
-        const ncols = Math.pow(2, z);
-        const tiles = [];
-
-        for (let i = 0; i < ncols; ++i) {
-            for (let j = 0; j < nrows; ++j) {
-                const tile = await this.fetchTile(z, i, j);
-                tiles.push(tile);
-            }
-        }
-        return tiles;
     }
 };
 

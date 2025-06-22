@@ -1,3 +1,5 @@
+import { createHelperDiv } from "./helper.js";
+
 export const EVENT_TIMER_TICK = "timer:tick";
 
 export default class Timer {
@@ -79,17 +81,27 @@ export default class Timer {
 */
 export function addTimeHelper(timer, root) {
 
-    const html = `
-        <div id="timer-helper-div">
-            <label id="time-laber">Current Time: xxxxx</label>
-            </br>
-            <label>Multipler</label><input id="timer-multipler-input" type="range" value="${timer.getMultipler()}" min="1" max="100000">
-            </br>
-            <button id="timer-start-button">开始计时器</button>
+    const id = "timer-helper-div";
+    const innerHTML = `
+        <div>
+            <table>
+                <tr>
+                    <td>计时器</td>
+                    <td><label id="time-laber">Current Time: xxxxx</label></td>
+                </tr>
+                <tr>
+                    <td><label>Multipler</label></td>
+                    <td><input id="timer-multipler-input" type="range" value="${timer.getMultipler()}" min="1" max="100000"></td>
+                    <td><button id="timer-start-button">开始计时器</button></td>
+                </tr>
+            </table>
+            
         </div>
     `
 
-    root.innerHTML = root.innerHTML + html;
+    const container = createHelperDiv(id, innerHTML);
+
+    root.appendChild(container);
 
     const timeLabel = document.getElementById("time-laber");
     const multiplerInput = document.getElementById("timer-multipler-input");
@@ -110,18 +122,18 @@ export function addTimeHelper(timer, root) {
     });
 
     if (timer.running) {
-        startButton.innerText = "🟥停止计时器";
+        startButton.innerText = "🟥暂停";
     } else {
-        startButton.innerText = "▶️开始计时器";
+        startButton.innerText = "▶️继续";
     }
 
     startButton.addEventListener('click', () => {
         if (timer.running) {
             timer.stop();
-            startButton.innerText = "▶️开始计时器";
+            startButton.innerText = "▶️继续";
         } else {
             timer.start();
-            startButton.innerText = "🟥停止计时器";
+            startButton.innerText = "🟥暂停";
         }
     });
 

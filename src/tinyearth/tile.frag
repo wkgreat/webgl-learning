@@ -57,7 +57,7 @@ void main() {
 
     if(u_isNight) {
         vec3 vlgt = normalize(light.position - pos);
-        float night = clamp(-1.0 * dot(v_normal, vlgt), 0.0, 1.0);
+        float night = clamp(-1.0 * dot(v_normal, vlgt) * 2.0, 0.0, 1.0);
         vec4 color = texcolor * night;
         gl_FragColor = color;
     } else {

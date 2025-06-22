@@ -8,6 +8,7 @@ import tileVertSource from "./tile.vert";
 import { vec4_t3 } from "./glmatrix_utils.js";
 import Frustum from "./frustum.js";
 import TinyEarth from "./tinyearth.js";
+import { createHelperDiv } from "./helper.js";
 
 export class GlobeTileProgram {
 
@@ -300,20 +301,21 @@ export class TileTree {
             callback(curNode.tile);
         } else if (curNode.key.z < z) {
             for (let node of curNode.children) {
+                let tile = null;
+                if (node.z >= 6) {
+                    tile = node.tile;
+                    if (!tile) {
+                        tile = new Tile(node.key.x, node.key.y, node.key.z, "");
+                    }
+                    if (!tile.intersectFrustum(this.frustum) || tile.tileIsBack(this.frustum)) {
+                        continue;
+                    }
+                }
                 this.#forEachTilesOfLevel(node, z, callback);
             }
         } else {
             console.error("should not be here.");
         }
-    }
-
-    /**
-     * @param {number} level
-     * @param {Frustum} frustum
-     * @returns {TileNode[]}
-    */
-    getTileNodeByFrustum(level, frustum) {
-        // TODO
     }
 
     /**
@@ -485,11 +487,9 @@ export class TileProvider {
         let pos = proj4(EPSG_4978, EPSG_4326, Array.from(camera.getFrom().slice(0, 3)));
         let height = pos[2];
         const initialResolution = 2 * Math.PI * EARTH_RADIUS / tileSize;
-
         const groundResolution = height * 2 / tileSize;
-
-        const zoom = Math.log2(initialResolution / groundResolution);
-        return Math.min(Math.max(Math.floor(zoom) + 2, this.minLevel), this.maxLevel);
+        const zoom = Math.log2(initialResolution / groundResolution) + 1;
+        return Math.min(Math.max(Math.ceil(zoom), this.minLevel), this.maxLevel);
     }
 
 
@@ -504,6 +504,8 @@ export class TileProvider {
 
             const level = that.tileLevel(camera);
 
+            console.log("STOP: ", that.isStop());
+
             if (!that.isStop()) {
                 if (info === undefined || (info["type"] === 'zoom' && that.curlevel !== level) || info["type"] === 'move' || info["type"] === 'round') {
 
@@ -513,7 +515,7 @@ export class TileProvider {
                     const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, vec4_t3(from));
                     // console.log("LEVEL:", level, "FROM: ", fromLonLatAlt);
 
-                    that.tileSource.fetchTilesOfLevelAsync(level, (tile) => {
+                    that.tileSource.fetchTilesOfLevelAsync(level, that.tiletree, async (tile) => {
                         if (tile) {
                             that.tiletree.addTile(tile);
                         }
@@ -529,29 +531,40 @@ export class TileProvider {
 
 /**
  * @param {HTMLDivElement} root  
+ * @param {string} title 
  * @param {TileProvider} tileProvider 
 */
-export function addTileProviderHelper(root, tileProvider) {
-    const html = `
-    <table>
+export function addTileProviderHelper(root, title, tileProvider) {
+    const uuid = crypto.randomUUID();
+    const innerHTML = `
+        ${title}
+        <table>
             <tr>
-                <th> 瓦片获取启动 </th>
-                <th> <input type="checkbox" id="tile-provide-input" checked></th>
+                <td>获取/暂停获取瓦片</td>
+                <td>
+                    <input type="checkbox" id="${uuid}">
+                </td>
             </tr>
         </table>
     `;
 
-    root.innerHTML = root.innerHTML + html;
+    const container = createHelperDiv("tile-provider-helper", innerHTML);
+    root.appendChild(container);
 
-    const checkbox = document.getElementById("tile-provide-input");
-    checkbox.checked = !tileProvider.isStop();
-    checkbox.addEventListener('change', (event) => {
-        if (event.target.checked) {
-            tileProvider.start();
-        } else {
-            tileProvider.stop();
-        }
-    });
+    const checkbox = document.getElementById(uuid);
+
+    if (checkbox) {
+        checkbox.checked = !tileProvider.isStop();
+        checkbox.addEventListener("change", (event) => {
+            if (event.target.checked) {
+                tileProvider.start();
+            } else {
+                tileProvider.stop();
+            }
+        });
+    } else {
+        console.error("addTileProviderHelper checkbox is null.");
+    }
 
 }
 
