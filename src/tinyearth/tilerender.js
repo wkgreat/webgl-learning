@@ -125,6 +125,27 @@ export class GlobeTileProgram {
         this.setUniform1f("material.shininess", 1000);
     }
 
+    setVerticeData(verticeData) {
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers["vertices"]);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, verticeData, this.gl.STATIC_DRAW);
+        this.numElements = verticeData.length;
+    }
+
+    createTextureAndSetData(textureData) {
+        const texture = this.gl.createTexture();
+        this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+        //设置纹理参数
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
+        this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
+        this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
+        //纹理数据
+        this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, textureData);
+
+        return texture;
+    }
+
     setData(verticeData, textureData) {
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.buffers["vertices"]);
@@ -144,17 +165,23 @@ export class GlobeTileProgram {
     }
 
     /**
-     * @param {Tile} tile
+     * @param {TileNode} node
      * @param {mat4} modelMtx
      * @param {Camera} camera
      * @param {mat4} projMtx       
     */
-    drawTileMesh(tile, modelMtx, camera, projMtx, opacity = 1.0, isNight = false) {
+    drawTileNode(node, modelMtx, camera, projMtx, opacity = 1.0, isNight = false) {
 
-        if (tile.ready) {
+        if (node.tile.ready) {
             this.gl.useProgram(this.program);
 
-            this.setData(tile.mesh, tile.image);
+            this.setVerticeData(node.tile.mesh);
+
+            if (node.texture) {
+                this.gl.bindTexture(this.gl.TEXTURE_2D, node.texture);
+            } else {
+                node.texture = this.createTextureAndSetData(node.tile.image);
+            }
 
             this.gl.vertexAttribPointer(this.gl.getAttribLocation(this.program, "a_position"), 3, this.gl.FLOAT, false, (3 + 2 + 3) * 4, 0); // 设置属性指针
             this.gl.enableVertexAttribArray(this.gl.getAttribLocation(this.program, "a_position")); // 激活属性
@@ -179,9 +206,9 @@ export class GlobeTileProgram {
     render(modelMtx, viewMtx, projMtx) {
         const that = this;
         for (let provider of this.tileProviders) {
-            provider.tiletree.forEachTilesOfLevel(provider.curlevel, (tile) => {
-                if (tile && tile.ready) {
-                    that.drawTileMesh(tile, modelMtx, viewMtx, projMtx, provider.getOpacity(), provider.getIsNight());
+            provider.tiletree.forEachTileNodesOfLevel(provider.curlevel, (node) => {
+                if (node && node.tile && node.tile.ready) {
+                    that.drawTileNode(node, modelMtx, viewMtx, projMtx, provider.getOpacity(), provider.getIsNight());
                 }
             });
         }
@@ -200,6 +227,8 @@ export class TileNode {
     key = { z: 0, x: 0, y: 0 };
     /* @type {Tile} */
     tile = null;
+    /** @type {WebGLTexture|null} */
+    texture = null; //TODO 添加texture缓存，防止重复解析纹理
     /**@type {TileNode[]} */
     children = [];
 
@@ -287,8 +316,8 @@ export class TileTree {
      * @param {(tile:Tile)=>void} callback  
      * @TODO 根据视锥体剪枝
     */
-    forEachTilesOfLevel(z, callback) {
-        this.#forEachTilesOfLevel(this.root, z, callback);
+    forEachTileNodesOfLevel(z, callback) {
+        this.#forEachTileNodesOfLevel(this.root, z, callback);
     }
 
     /**
@@ -296,9 +325,9 @@ export class TileTree {
      * @param {number} z
      * @param {(tile:Tile)=>void} callback  
     */
-    #forEachTilesOfLevel(curNode, z, callback) {
+    #forEachTileNodesOfLevel(curNode, z, callback) {
         if (z === curNode.key.z) {
-            callback(curNode.tile);
+            callback(curNode);
         } else if (curNode.key.z < z) {
             for (let node of curNode.children) {
                 let tile = null;
@@ -311,7 +340,7 @@ export class TileTree {
                         continue;
                     }
                 }
-                this.#forEachTilesOfLevel(node, z, callback);
+                this.#forEachTileNodesOfLevel(node, z, callback);
             }
         } else {
             console.error("should not be here.");
@@ -537,18 +566,14 @@ export class TileProvider {
 export function addTileProviderHelper(root, title, tileProvider) {
     const uuid = crypto.randomUUID();
     const innerHTML = `
-        ${title}
-        <table>
-            <tr>
-                <td>获取/暂停获取瓦片</td>
-                <td>
-                    <input type="checkbox" id="${uuid}">
-                </td>
-            </tr>
-        </table>
+    <div>
+        ${title}</br>
+        获取/暂停获取瓦片
+        <input type="checkbox" id="${uuid}"></br>     
+    </div>
     `;
 
-    const container = createHelperDiv("tile-provider-helper", innerHTML);
+    const container = createHelperDiv(`tile-provider-helper-${crypto.randomUUID()}`, innerHTML);
     root.appendChild(container);
 
     const checkbox = document.getElementById(uuid);

@@ -137,15 +137,15 @@ export class TileSource {
             // console.log("TILES LEVEL: ", z, tiles.length, this.frustum);
             for (let tile of tiles) {
 
-                // const node = tiletree.getTileNode(tile.z, tile.x, tile.y);
+                const node = tiletree.getTileNode(tile.z, tile.x, tile.y);
 
-                // if (node && node.tile) {
-                //     callback(node.tile);
-                // } else {
-                this.fetchTileData(tile, this.frustum).then(callback).catch(e => {
-                    console.error(e);
-                });
-                // }
+                if (node && node.tile) {
+                    callback(node.tile);
+                } else {
+                    this.fetchTileData(tile, this.frustum).then(callback).catch(e => {
+                        console.error(e);
+                    });
+                }
 
 
             }
@@ -174,6 +174,10 @@ export class Tile {
     ready = false;
     /**@type {TileMesh|null}*/
     mesh = null;
+
+    extentCache = []; //TODO 缓存extent
+
+    normals = null; // TODO 缓存normals
 
     constructor(x, y, z, url) {
         this.x = x;
@@ -239,6 +243,33 @@ export class Tile {
             this.pointInFrustumPlane(p, frustum.far);
     }
 
+    getNormals() {
+        if (!this.normals) {
+            const ext = this.extent();
+            let p0 = [ext[0], ext[1]];
+            let p1 = [ext[0], ext[3]];
+            let p2 = [ext[2], ext[1]];
+            let p3 = [ext[2], ext[3]];
+            p0 = proj4(EPSG_3857, EPSG_4326, p0);
+            p1 = proj4(EPSG_3857, EPSG_4326, p1);
+            p2 = proj4(EPSG_3857, EPSG_4326, p2);
+            p3 = proj4(EPSG_3857, EPSG_4326, p3);
+
+            p0 = proj4(EPSG_4326, EPSG_4978, [...p0, 0]);
+            p1 = proj4(EPSG_4326, EPSG_4978, [...p1, 0]);
+            p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
+            p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
+
+            p0 = vec3.fromValues(p0[0], p0[1], p0[2]);
+            p1 = vec3.fromValues(p1[0], p1[1], p1[2]);
+            p2 = vec3.fromValues(p2[0], p2[1], p2[2]);
+            p3 = vec3.fromValues(p3[0], p3[1], p3[2]);
+
+            this.normals = [p0, p1, p2, p3];
+        }
+        return this.normals;
+    }
+
     /**
      * @param {Frustum} frustum
      * @returns {boolean}
@@ -249,25 +280,27 @@ export class Tile {
             return true;
         }
 
-        const ext = this.extent();
-        let p0 = [ext[0], ext[1]];
-        let p1 = [ext[0], ext[3]];
-        let p2 = [ext[2], ext[1]];
-        let p3 = [ext[2], ext[3]];
-        p0 = proj4(EPSG_3857, EPSG_4326, p0);
-        p1 = proj4(EPSG_3857, EPSG_4326, p1);
-        p2 = proj4(EPSG_3857, EPSG_4326, p2);
-        p3 = proj4(EPSG_3857, EPSG_4326, p3);
+        // const ext = this.extent();
+        // let p0 = [ext[0], ext[1]];
+        // let p1 = [ext[0], ext[3]];
+        // let p2 = [ext[2], ext[1]];
+        // let p3 = [ext[2], ext[3]];
+        // p0 = proj4(EPSG_3857, EPSG_4326, p0);
+        // p1 = proj4(EPSG_3857, EPSG_4326, p1);
+        // p2 = proj4(EPSG_3857, EPSG_4326, p2);
+        // p3 = proj4(EPSG_3857, EPSG_4326, p3);
 
-        p0 = proj4(EPSG_4326, EPSG_4978, [...p0, 0]);
-        p1 = proj4(EPSG_4326, EPSG_4978, [...p1, 0]);
-        p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
-        p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
+        // p0 = proj4(EPSG_4326, EPSG_4978, [...p0, 0]);
+        // p1 = proj4(EPSG_4326, EPSG_4978, [...p1, 0]);
+        // p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
+        // p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
 
-        p0 = vec3.fromValues(p0[0], p0[1], p0[2]);
-        p1 = vec3.fromValues(p1[0], p1[1], p1[2]);
-        p2 = vec3.fromValues(p2[0], p2[1], p2[2]);
-        p3 = vec3.fromValues(p3[0], p3[1], p3[2]);
+        // p0 = vec3.fromValues(p0[0], p0[1], p0[2]);
+        // p1 = vec3.fromValues(p1[0], p1[1], p1[2]);
+        // p2 = vec3.fromValues(p2[0], p2[1], p2[2]);
+        // p3 = vec3.fromValues(p3[0], p3[1], p3[2]);
+
+        const [p0, p1, p2, p3] = this.getNormals();
 
         const viewpoint = frustum.getViewpoint();
         const sp0 = vec3_normalize(p0);

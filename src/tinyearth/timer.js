@@ -82,26 +82,24 @@ export default class Timer {
 export function addTimeHelper(timer, root) {
 
     const id = "timer-helper-div";
+    const multiplierLabelId = `multiplier-${crypto.randomUUID()}`;
     const innerHTML = `
         <div>
-            <table>
-                <tr>
-                    <td>计时器</td>
-                    <td><label id="time-laber">Current Time: xxxxx</label></td>
-                </tr>
-                <tr>
-                    <td><label>Multipler</label></td>
-                    <td><input id="timer-multipler-input" type="range" value="${timer.getMultipler()}" min="1" max="100000"></td>
-                    <td><button id="timer-start-button">开始计时器</button></td>
-                </tr>
-            </table>
-            
+        <label>计时器:</lable><button id="timer-start-button">开始计时器</button> 
+        </br>
+        <label>倍速:</label>
+        <input id="timer-multipler-input" type="range" value="${timer.getMultipler()}" min="1" max="100000">
+        <label id="${multiplierLabelId}"></label></br>
+        <label id="time-laber">时间</label>      
         </div>
     `
 
     const container = createHelperDiv(id, innerHTML);
 
     root.appendChild(container);
+
+    const multiplierLabel = document.getElementById(multiplierLabelId);
+    multiplierLabel.innerHTML = `x${timer.getMultipler()}`;
 
     const timeLabel = document.getElementById("time-laber");
     const multiplerInput = document.getElementById("timer-multipler-input");
@@ -110,7 +108,7 @@ export function addTimeHelper(timer, root) {
     if (timer.eventBus) {
         timer.eventBus.addEventListener(EVENT_TIMER_TICK, {
             callback: (_timer) => {
-                timeLabel.innerText = _timer.getDate().toISOString();
+                timeLabel.innerText = _timer.getDate().toLocaleString();
             }
         })
     }
@@ -119,6 +117,7 @@ export function addTimeHelper(timer, root) {
     multiplerInput.value = timer.getMultipler();
     multiplerInput.addEventListener('input', () => {
         timer.setMultipler(multiplerInput.value);
+        multiplierLabel.innerHTML = `x${multiplerInput.value}`;
     });
 
     if (timer.running) {

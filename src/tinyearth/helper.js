@@ -1,3 +1,5 @@
+import "./helper.css"
+
 export function createHelperDiv(id, innerHtml = "") {
     const container = document.createElement('div');
     container.id = id;
