@@ -1,11 +1,10 @@
 import { mat4, vec4 } from "gl-matrix";
 import proj4 from "proj4";
 import Camera from "./camera.js";
-import { Tile, TileSource } from "./maptiler.js";
+import { Tile } from "./maptiler.js";
 import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
 import tileFragSource from "./tile.frag";
 import tileVertSource from "./tile.vert";
-import { vec4_t3 } from "./glmatrix_utils.js";
 import Frustum, { buildFrustum } from "./frustum.js";
 import TinyEarth from "./tinyearth.js";
 import { createHelperDiv } from "./helper.js";
@@ -511,8 +510,6 @@ export class TileProvider {
 
     curlevel = 0;
 
-    tileSource = null;
-
     /** @type {TileTree} */
     tiletree = null;
 
@@ -541,7 +538,6 @@ export class TileProvider {
     constructor(url, tinyearth) {
         this.tinyearth = tinyearth;
         this.url = url;
-        this.tileSource = new TileSource(url); // TODO 将TileTree传入，如果有tile，不必再重复请求了
         this.tiletree = new TileTree(this.url);
         this.camera = tinyearth.scene.getCamera();
         this.callback = this.provideCallbackGen();
@@ -574,7 +570,6 @@ export class TileProvider {
     */
     setFrustum(frustum) {
         this.frustum = frustum;
-        this.tileSource.setFrustum(frustum);
     }
 
     setOpacity(opacity) {

@@ -2,7 +2,7 @@ import { mat4 } from "gl-matrix";
 import { buildFrustum } from "./frustum.js";
 import Scene from "./scene.js";
 import { getSunPositionECEF } from "./sun.js";
-import { addTileProviderHelper, createTileProgram, createTileProgramBuffer, drawTileMesh, GlobeTileProgram, TileProvider } from "./tilerender.js";
+import { addTileProviderHelper, GlobeTileProgram, TileProvider } from "./tilerender.js";
 import Timer, { addTimeHelper, EVENT_TIMER_TICK } from "./timer.js";
 import "./tinyearth.css";
 import proj4 from "proj4";

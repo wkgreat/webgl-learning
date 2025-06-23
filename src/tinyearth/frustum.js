@@ -3,30 +3,30 @@ glMatrix.setMatrixArrayType(Array);
 
 export default class Frustum {
 
-    /** @type {mat4|null}*/
+    /** @type {vec4|null}*/
     left = null;
-    /** @type {mat4|null}*/
+    /** @type {vec4|null}*/
     right = null;
-    /** @type {mat4|null}*/
+    /** @type {vec4|null}*/
     bottom = null;
-    /** @type {mat4|null}*/
+    /** @type {vec4|null}*/
     top = null;
-    /** @type {mat4|null}*/
+    /** @type {vec4|null}*/
     near = null;
-    /** @type {mat4|null}*/
+    /** @type {vec4|null}*/
     far = null;
-    /** @type {mat4|null}*/
+    /** @type {vec4|null}*/
     viewpoint = null;
-    /** @type {mat4|null}*/
+    /** @type {vec4|null}*/
     centerpoint = null;
 
     /**
-     * @param {mat4|null} left
-     * @param {mat4|null} right
-     * @param {mat4|null} bottom
-     * @param {mat4|null} top
-     * @param {mat4|null} near
-     * @param {mat4|null} far      
+     * @param {vec4|null} left
+     * @param {vec4|null} right
+     * @param {vec4|null} bottom
+     * @param {vec4|null} top
+     * @param {vec4|null} near
+     * @param {vec4|null} far      
     */
     constructor(left, right, bottom, top, near, far) {
         this.left = left;
