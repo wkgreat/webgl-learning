@@ -6,7 +6,7 @@ import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
 import tileFragSource from "./tile.frag";
 import tileVertSource from "./tile.vert";
 import { vec4_t3 } from "./glmatrix_utils.js";
-import Frustum from "./frustum.js";
+import Frustum, { buildFrustum } from "./frustum.js";
 import TinyEarth from "./tinyearth.js";
 import { createHelperDiv } from "./helper.js";
 
@@ -131,6 +131,14 @@ export class GlobeTileProgram {
         this.numElements = verticeData.length;
     }
 
+    createVertexBufferAndSetData(verticeData) {
+        const buffer = this.gl.createBuffer();
+        this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
+        this.gl.bufferData(this.gl.ARRAY_BUFFER, verticeData, this.gl.STATIC_DRAW);
+        this.numElements = verticeData.length;
+        return buffer;
+    }
+
     createTextureAndSetData(textureData) {
         const texture = this.gl.createTexture();
         this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
@@ -175,7 +183,12 @@ export class GlobeTileProgram {
         if (node.tile.ready) {
             this.gl.useProgram(this.program);
 
-            this.setVerticeData(node.tile.mesh);
+            if (node.vertexBuffer) {
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, node.vertexBuffer);
+                this.numElements = node.tile.mesh.length;
+            } else {
+                node.vertexBuffer = this.createVertexBufferAndSetData(node.tile.mesh);
+            }
 
             if (node.texture) {
                 this.gl.bindTexture(this.gl.TEXTURE_2D, node.texture);
@@ -206,7 +219,7 @@ export class GlobeTileProgram {
     render(modelMtx, viewMtx, projMtx) {
         const that = this;
         for (let provider of this.tileProviders) {
-            provider.tiletree.forEachTileNodesOfLevel(provider.curlevel, (node) => {
+            provider.tiletree.fetchOrCreateTileNodesToLevel(provider.curlevel, provider.frustum, async (node) => {
                 if (node && node.tile && node.tile.ready) {
                     that.drawTileNode(node, modelMtx, viewMtx, projMtx, provider.getOpacity(), provider.getIsNight());
                 }
@@ -227,8 +240,13 @@ export class TileNode {
     key = { z: 0, x: 0, y: 0 };
     /* @type {Tile} */
     tile = null;
-    /** @type {WebGLTexture|null} */
-    texture = null; //TODO 添加texture缓存，防止重复解析纹理
+
+    /**@type {WebGLBuffer|null} 瓦片顶点WebGL缓冲*/
+    vertexBuffer = null; //
+
+    /** @type {WebGLTexture|null} 瓦片图片WebGL纹理*/
+    texture = null;
+
     /**@type {TileNode[]} */
     children = [];
 
@@ -255,6 +273,11 @@ export class TileTree {
 
     /**@type {TileNode} */
     root = TileNode.createEmptyTileNode(0, 0, 0);
+    url = "";
+
+    constructor(url) {
+        this.url = url;
+    }
 
     /**
      * @param {Tile} tile 
@@ -408,6 +431,68 @@ export class TileTree {
         }
     }
 
+    fetchOrCreateTileNodesToLevel(z, frustum, callback) {
+
+        if (z <= 5) {
+            const nrows = Math.pow(2, z);
+            const ncols = Math.pow(2, z);
+            for (let i = 0; i < ncols; ++i) {
+                for (let j = 0; j < nrows; ++j) {
+                    let node = this.getTileNode(z, i, j);
+                    if (node === null) {
+                        const tile = new Tile(i, j, z, this.url);
+                        tile.toMesh();
+                        this.addTile(tile);
+                        node = this.getTileNode(z, i, j);
+                    } else if (node.tile === null) {
+                        const tile = new Tile(i, j, z, this.url);
+                        tile.toMesh();
+                        node.tile = tile;
+                    }
+                    callback(node);
+                }
+            }
+        } else {
+
+            this.#fetchOrCreateTileNodesToLevelRec(this.root, z, frustum, callback);
+
+        }
+
+    }
+
+    #fetchOrCreateTileNodesToLevelRec(curNode, z, frustum, callback) {
+
+        if (curNode === null) {
+            return;
+        }
+
+        if (curNode.tile === null) {
+            curNode.tile = new Tile(curNode.key.x, curNode.key.y, curNode.key.z, this.url);
+            curNode.tile.toMesh();
+        }
+
+        if ((!curNode.tile.intersectFrustum(frustum)) || (curNode.key.z > 5 && curNode.tile.tileIsBack(frustum))) {
+            return;
+        }
+
+        if (curNode.key.z === z) {
+            callback(curNode);
+        } else if (curNode.key.z <= z) {
+            if (curNode.children.length === 0) {
+                curNode.children.push(TileNode.createEmptyTileNode(curNode.key.z + 1, curNode.key.x << 1, curNode.key.y << 1));
+                curNode.children.push(TileNode.createEmptyTileNode(curNode.key.z + 1, curNode.key.x << 1 | 1, curNode.key.y << 1));
+                curNode.children.push(TileNode.createEmptyTileNode(curNode.key.z + 1, curNode.key.x << 1, curNode.key.y << 1 | 1));
+                curNode.children.push(TileNode.createEmptyTileNode(curNode.key.z + 1, curNode.key.x << 1 | 1, curNode.key.y << 1 | 1));
+            }
+            for (let node of curNode.children) {
+                this.#fetchOrCreateTileNodesToLevelRec(node, z, frustum, callback);
+            }
+        } else {
+            console.warn("should not be here!");
+            return [];
+        }
+    }
+
     vaccum() {
         //TODO 定期清理不用的tile
     }
@@ -416,6 +501,9 @@ export class TileTree {
 
 
 export class TileProvider {
+
+    /**@type {TinyEarth|null}*/
+    tinyearth = null;
 
     url = "";
 
@@ -447,16 +535,18 @@ export class TileProvider {
     #isNight = false;
 
     /**
-     * @param {Camera} camera 
+     * @param {string} url
+     * @param {TinyEarth} tinyearth 
     */
-    constructor(url, camera) {
+    constructor(url, tinyearth) {
+        this.tinyearth = tinyearth;
         this.url = url;
         this.tileSource = new TileSource(url); // TODO 将TileTree传入，如果有tile，不必再重复请求了
-        this.tiletree = new TileTree();
-        this.camera = camera;
+        this.tiletree = new TileTree(this.url);
+        this.camera = tinyearth.scene.getCamera();
         this.callback = this.provideCallbackGen();
-        this.callback(camera);
-        camera.addOnchangeEeventListener(this.callback);
+        this.callback(this.camera);
+        this.camera.addOnchangeEeventListener(this.callback);
     }
 
     setMinLevel(level) {
@@ -533,22 +623,20 @@ export class TileProvider {
 
             const level = that.tileLevel(camera);
 
-            console.log("STOP: ", that.isStop());
+            that.frustum = buildFrustum(that.tinyearth.scene.getProjection().perspective(), camera.getMatrix().viewMtx, camera.getFrom());
 
             if (!that.isStop()) {
                 if (info === undefined || (info["type"] === 'zoom' && that.curlevel !== level) || info["type"] === 'move' || info["type"] === 'round') {
 
                     that.curlevel = level;
 
-                    const from = camera.getFrom();
-                    const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, vec4_t3(from));
-                    // console.log("LEVEL:", level, "FROM: ", fromLonLatAlt);
+                    that.tiletree.fetchOrCreateTileNodesToLevel(level, that.frustum, async (node) => {/*do nothing*/ });
 
-                    that.tileSource.fetchTilesOfLevelAsync(level, that.tiletree, async (tile) => {
-                        if (tile) {
-                            that.tiletree.addTile(tile);
-                        }
-                    });
+                    // that.tileSource.fetchTilesOfLevelAsync(level, that.tiletree, async (tile) => {
+                    //     if (tile) {
+                    //         that.tiletree.addTile(tile);
+                    //     }
+                    // });
                 }
             }
         }

@@ -73,14 +73,14 @@ export class TileSource {
         // let testFlag = false;
         // console.log("tilestack: ", tileStack);
 
-        function tileIsTest(tile) {
-            for (let t of tileStack) {
-                if (t[2] === tile.z && t[0] === tile.x && t[1] === tile.y) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        // function tileIsTest(tile) {
+        //     for (let t of tileStack) {
+        //         if (t[2] === tile.z && t[0] === tile.x && t[1] === tile.y) {
+        //             return true;
+        //         }
+        //     }
+        //     return false;
+        // }
 
         while (tiles.length !== 0 && tiles[0].z !== zmax) {
             const tile = tiles.shift();
@@ -126,10 +126,15 @@ export class TileSource {
             const ncols = Math.pow(2, z);
             for (let i = 0; i < ncols; ++i) {
                 for (let j = 0; j < nrows; ++j) {
-                    const tile = new Tile(i, j, z, this.url);
-                    this.fetchTileData(tile, this.frustum).then(callback).catch(e => {
-                        console.error(e);
-                    });
+                    const node = tiletree.getTileNode(z, i, j);
+                    if (node && node.tile) {
+                        callback(node.tile);
+                    } else {
+                        const tile = new Tile(i, j, z, this.url);
+                        this.fetchTileData(tile, this.frustum).then(callback).catch(e => {
+                            console.error(e);
+                        });
+                    }
                 }
             }
         } else {
@@ -146,8 +151,6 @@ export class TileSource {
                         console.error(e);
                     });
                 }
-
-
             }
         }
     }
@@ -177,7 +180,9 @@ export class Tile {
 
     extentCache = []; //TODO 缓存extent
 
-    normals = null; // TODO 缓存normals
+    normals = null;
+
+    corners = null;
 
     constructor(x, y, z, url) {
         this.x = x;
@@ -245,6 +250,7 @@ export class Tile {
 
     getNormals() {
         if (!this.normals) {
+            // console.log("CALC");
             const ext = this.extent();
             let p0 = [ext[0], ext[1]];
             let p1 = [ext[0], ext[3]];
@@ -266,6 +272,8 @@ export class Tile {
             p3 = vec3.fromValues(p3[0], p3[1], p3[2]);
 
             this.normals = [p0, p1, p2, p3];
+        } else {
+            // console.log("SKIP");
         }
         return this.normals;
     }
@@ -355,22 +363,26 @@ export class Tile {
     }
 
     getTileCorner() {
-        const ext = this.extent();
-        let p0 = [ext[0], ext[1]];
-        let p1 = [ext[0], ext[3]];
-        let p2 = [ext[2], ext[3]];
-        let p3 = [ext[2], ext[1]];
-        p0 = proj4(EPSG_3857, EPSG_4326, p0);
-        p1 = proj4(EPSG_3857, EPSG_4326, p1);
-        p2 = proj4(EPSG_3857, EPSG_4326, p2);
-        p3 = proj4(EPSG_3857, EPSG_4326, p3);
 
-        p0 = proj4(EPSG_4326, EPSG_4978, [...p0, 0]);
-        p1 = proj4(EPSG_4326, EPSG_4978, [...p1, 0]);
-        p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
-        p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
+        if (!this.corners) {
+            const ext = this.extent();
+            let p0 = [ext[0], ext[1]];
+            let p1 = [ext[0], ext[3]];
+            let p2 = [ext[2], ext[3]];
+            let p3 = [ext[2], ext[1]];
+            p0 = proj4(EPSG_3857, EPSG_4326, p0);
+            p1 = proj4(EPSG_3857, EPSG_4326, p1);
+            p2 = proj4(EPSG_3857, EPSG_4326, p2);
+            p3 = proj4(EPSG_3857, EPSG_4326, p3);
 
-        return [vec3.fromValues(...p0), vec3.fromValues(...p1), vec3.fromValues(...p2), vec3.fromValues(...p3)];
+            p0 = proj4(EPSG_4326, EPSG_4978, [...p0, 0]);
+            p1 = proj4(EPSG_4326, EPSG_4978, [...p1, 0]);
+            p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
+            p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
+
+            this.corners = [vec3.fromValues(...p0), vec3.fromValues(...p1), vec3.fromValues(...p2), vec3.fromValues(...p3)]
+        }
+        return this.corners;;
 
     }
 
@@ -469,6 +481,7 @@ export class Tile {
     }
 
     async toMesh() {
+        console.log("to mesh...");
         await this.fetchTile();
         const data = TileMesher.toMesh(this, 4, EPSG_4978);
         this.mesh = data.vertices;

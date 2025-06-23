@@ -3,7 +3,7 @@ export async function loadImage(url) {
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = (err) => {
-            console.error("loadImage ERROR: ", err);
+            console.warn("loadImage ERROR: ", err);
             reject(err);
         }
         img.crossOrigin = "anonymous";

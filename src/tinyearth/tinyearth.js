@@ -161,7 +161,8 @@ function main() {
         // const url = "https://demo.ldproxy.net/earthatnight/map/tiles/WebMercatorQuad/{z}/{y}/{x}?f=jpeg";
 
         //常规底图
-        let url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
+        // let url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
+        let url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
         const tileProvider0 = new TileProvider(url, tinyearth.scene.getCamera());
         tileProvider0.setMinLevel(2);
         tileProvider0.setMaxLevel(20);
@@ -170,13 +171,13 @@ function main() {
         tinyearth.addTileProvider(tileProvider0);
 
         //夜间底图
-        url = "https://demo.ldproxy.net/earthatnight/map/tiles/WebMercatorQuad/{z}/{y}/{x}?f=jpeg"
-        const tileProvider1 = new TileProvider(url, tinyearth.scene.getCamera());
-        tileProvider1.setMinLevel(2);
-        tileProvider1.setMaxLevel(6);
-        tileProvider1.setIsNight(true);
-        addTileProviderHelper(document.getElementById("helper"), "夜晚灯光瓦片底图", tileProvider1);
-        tinyearth.addTileProvider(tileProvider1);
+        // url = "https://demo.ldproxy.net/earthatnight/map/tiles/WebMercatorQuad/{z}/{y}/{x}?f=jpeg"
+        // const tileProvider1 = new TileProvider(url, tinyearth.scene.getCamera());
+        // tileProvider1.setMinLevel(2);
+        // tileProvider1.setMaxLevel(6);
+        // tileProvider1.setIsNight(true);
+        // addTileProviderHelper(document.getElementById("helper"), "夜晚灯光瓦片底图", tileProvider1);
+        // tinyearth.addTileProvider(tileProvider1);
 
         const timer = new Timer(Date.now());
         timer.setEventBus(tinyearth.eventBus);
