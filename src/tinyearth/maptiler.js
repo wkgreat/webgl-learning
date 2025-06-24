@@ -2,7 +2,7 @@ import { glMatrix, vec3, vec4 } from "gl-matrix";
 import proj4 from "proj4";
 import Frustum from "./frustum.js";
 import { Plane, planeCrossPlane, pointOutSidePlane, rayCrossTriangle, Triangle } from "./geometry.js";
-import { vec3_add, vec3_normalize, vec3_sub, vec3_t4 } from "./glmatrix_utils.js";
+import { vec3_add, vec3_normalize, vec3_scale, vec3_sub, vec3_t4 } from "./glmatrix_utils.js";
 import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
 import { loadTileImage } from "./tileutils.js";
 glMatrix.setMatrixArrayType(Array);
@@ -161,15 +161,18 @@ export class Tile {
             return d0 >= 0 && d1 >= 0 && d2 >= 0 && d3 >= 0;
         } else {
             const viewpoint = frustum.getViewpoint();
+            const targetpoint = frustum.getTargetpoint();
+            const backview = vec3_normalize(vec3_sub(viewpoint, targetpoint));
+            const backviewpoint = vec3_add(viewpoint, vec3_scale(backview, 1E5));
             const sp0 = vec3_normalize(p0);
             const sp1 = vec3_normalize(p1);
             const sp2 = vec3_normalize(p2);
             const sp3 = vec3_normalize(p3);
 
-            const vp0 = vec3_sub(viewpoint, p0);
-            const vp1 = vec3_sub(viewpoint, p1);
-            const vp2 = vec3_sub(viewpoint, p2);
-            const vp3 = vec3_sub(viewpoint, p3);
+            const vp0 = vec3_sub(backviewpoint, p0);
+            const vp1 = vec3_sub(backviewpoint, p1);
+            const vp2 = vec3_sub(backviewpoint, p2);
+            const vp3 = vec3_sub(backviewpoint, p3);
 
             const d0 = vec3.dot(sp0, vp0);
             const d1 = vec3.dot(sp1, vp1);
@@ -178,7 +181,7 @@ export class Tile {
 
             const cp = vec3_add(p0, vec3_add(p1, vec3_add(p2, p3)));
             const cv0 = vec3_normalize(cp)
-            const cv1 = vec3_normalize(vec3_sub(viewpoint, cp));
+            const cv1 = vec3_normalize(vec3_sub(backviewpoint, cp));
             const cd = vec3.dot(cv0, cv1);
 
             return !(d0 >= 0 || d1 >= 0 || d2 >= 0 || d3 >= 0 || cd >= 0);
