@@ -218,7 +218,8 @@ export class GlobeTileProgram {
     render(modelMtx, viewMtx, projMtx) {
         const that = this;
         for (let provider of this.tileProviders) {
-            provider.tiletree.fetchOrCreateTileNodesToLevel(provider.curlevel, provider.frustum, async (node) => {
+            provider.frustum = this.tinyearth.scene.getFrustum();
+            provider.tiletree.fetchOrCreateTileNodesToLevel(provider.curlevel, provider.frustum, !provider.isStop(), async (node) => {
                 if (node && node.tile && node.tile.ready) {
                     that.drawTileNode(node, modelMtx, viewMtx, projMtx, provider.getOpacity(), provider.getIsNight());
                 }
@@ -273,6 +274,7 @@ export class TileTree {
     /**@type {TileNode} */
     root = TileNode.createEmptyTileNode(0, 0, 0);
     url = "";
+    #startRecLevel = 2;
 
     constructor(url) {
         this.url = url;
@@ -430,14 +432,15 @@ export class TileTree {
         }
     }
 
-    fetchOrCreateTileNodesToLevel(z, frustum, callback) {
+    fetchOrCreateTileNodesToLevel(z, frustum, create, callback) {
 
-        if (z <= 5) {
+        if (z <= this.#startRecLevel) {
             const nrows = Math.pow(2, z);
             const ncols = Math.pow(2, z);
             for (let i = 0; i < ncols; ++i) {
                 for (let j = 0; j < nrows; ++j) {
                     let node = this.getTileNode(z, i, j);
+                    if (!create && (node === null || node.tile === null)) { continue; }
                     if (node === null) {
                         const tile = new Tile(i, j, z, this.url);
                         tile.toMesh();
@@ -453,25 +456,48 @@ export class TileTree {
             }
         } else {
 
-            this.#fetchOrCreateTileNodesToLevelRec(this.root, z, frustum, callback);
+            this.#fetchOrCreateTileNodesToLevelRec(this.root, z, frustum, create, callback);
 
         }
 
     }
 
-    #fetchOrCreateTileNodesToLevelRec(curNode, z, frustum, callback) {
+    /**
+     * @param {Frustum} frustum 
+    */
+    #fetchOrCreateTileNodesToLevelRec(curNode, z, frustum, create, callback) {
 
         if (curNode === null) {
             return;
         }
 
         if (curNode.tile === null) {
-            curNode.tile = new Tile(curNode.key.x, curNode.key.y, curNode.key.z, this.url);
-            curNode.tile.toMesh();
+            if (create) {
+                curNode.tile = new Tile(curNode.key.x, curNode.key.y, curNode.key.z, this.url);
+                curNode.tile.toMesh();
+            }
+        }
+        if (curNode.key.z === 0 && curNode.key.x === 0 && curNode.key.y === 0) {
+            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
+        }
+        if (curNode.key.z === 1 && curNode.key.x === 1 && curNode.key.y === 0) {
+            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
+        }
+        if (curNode.key.z === 2 && curNode.key.x === 3 && curNode.key.y === 0) {
+            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
+        }
+        if (curNode.key.z === 3 && curNode.key.x === 6 && curNode.key.y === 3) {
+            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
+        }
+        if (curNode.key.z === 4 && curNode.key.x === 13 && curNode.key.y === 6) {
+            console.log(`viewpoint: ${frustum.getViewpoint()}, targetpoint: ${frustum.getTargetpoint()}`);
+            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
         }
 
-        if ((!curNode.tile.intersectFrustum(frustum)) || (curNode.key.z > 5 && curNode.tile.tileIsBack(frustum))) {
-            return;
+        if (curNode.tile != null) {
+            if ((!curNode.tile.intersectFrustum(frustum)) || (curNode.key.z > this.#startRecLevel && curNode.tile.tileIsBack(frustum))) {
+                return;
+            }
         }
 
         if (curNode.key.z === z) {
@@ -484,11 +510,10 @@ export class TileTree {
                 curNode.children.push(TileNode.createEmptyTileNode(curNode.key.z + 1, curNode.key.x << 1 | 1, curNode.key.y << 1 | 1));
             }
             for (let node of curNode.children) {
-                this.#fetchOrCreateTileNodesToLevelRec(node, z, frustum, callback);
+                this.#fetchOrCreateTileNodesToLevelRec(node, z, frustum, create, callback);
             }
         } else {
             console.warn("should not be here!");
-            return [];
         }
     }
 
@@ -618,20 +643,15 @@ export class TileProvider {
 
             const level = that.tileLevel(camera);
 
-            that.frustum = buildFrustum(that.tinyearth.scene.getProjection().perspective(), camera.getMatrix().viewMtx, camera.getFrom());
+            that.frustum = buildFrustum(that.tinyearth.scene.getProjection(), camera);
 
             if (!that.isStop()) {
                 if (info === undefined || (info["type"] === 'zoom' && that.curlevel !== level) || info["type"] === 'move' || info["type"] === 'round') {
 
                     that.curlevel = level;
 
-                    that.tiletree.fetchOrCreateTileNodesToLevel(level, that.frustum, async (node) => {/*do nothing*/ });
+                    that.tiletree.fetchOrCreateTileNodesToLevel(level, that.frustum, true, async (node) => {/*do nothing*/ });
 
-                    // that.tileSource.fetchTilesOfLevelAsync(level, that.tiletree, async (tile) => {
-                    //     if (tile) {
-                    //         that.tiletree.addTile(tile);
-                    //     }
-                    // });
                 }
             }
         }

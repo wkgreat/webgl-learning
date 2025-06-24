@@ -40,7 +40,8 @@ describe("frustum", () => {
         viewMtx = camera.getMatrix().viewMtx;
         M = mat4_mul(projMtx, viewMtx);
         IM = mat4_inv(M);
-        frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
+        // frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
+        frustum = buildFrustum(projection, camera);
 
     });
 

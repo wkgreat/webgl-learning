@@ -1,5 +1,5 @@
 import { describe, expect } from '@jest/globals';
-import { vec4 } from 'gl-matrix';
+import { vec3, vec4, glMatrix } from 'gl-matrix';
 import proj4 from 'proj4';
 import Camera from './camera';
 import { buildFrustum } from './frustum';
@@ -7,6 +7,7 @@ import { Tile } from './maptiler';
 import { EPSG_3857, EPSG_4326, EPSG_4978 } from './proj';
 import Projection from './projection';
 import { TileNode, TileTree } from './tilerender';
+glMatrix.setMatrixArrayType(Array);
 
 describe("tile", () => {
 
@@ -46,7 +47,7 @@ describe("tile", () => {
         const camera = new Camera(cameraFrom, cameraTo, cameraUp);
         const projMtx = projection.perspective();
         const viewMtx = camera.getMatrix().viewMtx;
-        const frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
+        const frustum = buildFrustum(projection, camera);
 
 
         const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -72,7 +73,7 @@ describe("tile", () => {
         const projMtx = projection.perspective();
         const viewMtx = camera.getMatrix().viewMtx;
 
-        const frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
+        const frustum = buildFrustum(projection, camera);
 
 
         const url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -87,6 +88,19 @@ describe("tile", () => {
             curtile = curtile.supTile();
         }
 
+
+    });
+
+    test("tile_is_back", () => {
+        //viewpoint: -4359992.357987573,7941517.930114926,5649520.125847518, targetpoint: -0.4083608749325508,0.7438098381739214,0.5291392259698825
+        //4,13,6
+
+        const viewpoint = vec3.fromValues(-4359992.357987573, 7941517.930114926, 5649520.125847518);
+        const targetpoint = vec3.fromValues(-0.4083608749325508, 0.7438098381739214, 0.5291392259698825);
+        const tile = new Tile(13, 6, 4, "");
+        const r = tile.tileIsBack2(viewpoint, targetpoint);
+
+        expect(r).toBeFalsy();
 
     });
 

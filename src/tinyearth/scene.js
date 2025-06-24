@@ -1,9 +1,12 @@
-import { vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 import Camera, { CameraMouseControl } from "./camera.js";
 import Projection from "./projection.js";
+import { vec4_t3 } from "./glmatrix_utils.js";
+import { buildFrustum } from "./frustum.js";
 
 export default class Scene {
 
+    /**@type {Camera}*/
     #camera = null;
     /**@type {Projection}*/
     #projection = null;
@@ -74,6 +77,10 @@ export default class Scene {
             this.#cameraControl = new CameraMouseControl(this.#camera, canvas);
             this.#cameraControl.enable();
         }
+    }
+
+    getFrustum() {
+        return buildFrustum(this.#projection, this.#camera);
     }
 
 };

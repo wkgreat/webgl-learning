@@ -167,7 +167,7 @@ describe("frustum_ray", () => {
         const viewMtx = camera.getMatrix().viewMtx;
         const M = mat4_mul(projMtx, viewMtx)
         const IM = mat4_inv(M);
-        const frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
+        const frustum = buildFrustum(projection, camera);
         const view = vec3.fromValues(...cameraFrom);
 
         const ray0 = planeCrossPlane(new Plane(frustum.left), new Plane(frustum.bottom));
@@ -214,7 +214,7 @@ describe("frustum_ray", () => {
         const viewMtx = camera.getMatrix().viewMtx;
         const M = mat4_mul(projMtx, viewMtx);
         const IM = mat4_inv(M);
-        const frustum = buildFrustum(projMtx, viewMtx, cameraFrom);
+        const frustum = buildFrustum(projection, camera);
 
         const view = vec3.fromValues(...cameraFrom);
 

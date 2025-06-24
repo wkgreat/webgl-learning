@@ -8,6 +8,7 @@ import "./tinyearth.css";
 import proj4 from "proj4";
 import { EPSG_4326, EPSG_4978 } from "./proj.js";
 import EventBus from "./event.js";
+import { addDebugHelper } from "./helper.js";
 
 let tinyearth = null;
 
@@ -33,6 +34,11 @@ export default class TinyEarth {
 
     /**@type {GlobeTileProgram|null}*/
     globeTilePorgram = null;
+
+
+    /**@type {boolean}*/
+    #startDrawFrame = true;
+
 
     /**@param {HTMLCanvasElement} canvas */
     constructor(canvas) {
@@ -80,6 +86,18 @@ export default class TinyEarth {
         this.globeTilePorgram.addTileProvider(provider);
     }
 
+    startDraw() {
+        this.#startDrawFrame = true;
+    }
+
+    stopDraw() {
+        this.#startDrawFrame = false;
+    }
+
+    isStartDraw() {
+        return this.#startDrawFrame;
+    }
+
     draw() {
         this.glInit();
 
@@ -96,26 +114,27 @@ export default class TinyEarth {
             }
         });
 
-        function drawFrame(t) {
-            that.gl.clearColor(0.0, 0.0, 0.0, 0.0);
-            that.gl.clearDepth(1.0);
-            that.gl.clear(that.gl.COLOR_BUFFER_BIT | that.gl.DEPTH_BUFFER_BIT);
-            that.scene.setViewWidth(that.viewWidth);
-            that.scene.setViewHeight(that.viewHeight);
 
-            const modelMtx = mat4.create();
-            const projMtx = that.scene.getProjection().perspective();
+        async function drawFrame(t) {
+            if (that.isStartDraw()) {
+                that.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+                that.gl.clearDepth(1.0);
+                that.gl.clear(that.gl.COLOR_BUFFER_BIT | that.gl.DEPTH_BUFFER_BIT);
+                that.scene.setViewWidth(that.viewWidth);
+                that.scene.setViewHeight(that.viewHeight);
 
-            const frustum = buildFrustum(
-                that.scene.getProjection().perspective(),
-                that.scene.getCamera().getMatrix().viewMtx,
-                that.scene.getCamera().getFrom());
-            that.globeTilePorgram.setFrustum(frustum);
+                const modelMtx = mat4.create();
+                const projMtx = that.scene.getProjection().perspective();
 
-            that.timer.tick(t);
+                const frustum = buildFrustum(
+                    that.scene.getProjection(),
+                    that.scene.getCamera());
+                that.globeTilePorgram.setFrustum(frustum);
 
-            that.globeTilePorgram.render(modelMtx, that.scene.getCamera(), projMtx);
+                that.timer.tick(t);
 
+                that.globeTilePorgram.render(modelMtx, that.scene.getCamera(), projMtx);
+            }
             requestAnimationFrame(drawFrame);
         }
 
@@ -161,8 +180,8 @@ function main() {
         // const url = "https://demo.ldproxy.net/earthatnight/map/tiles/WebMercatorQuad/{z}/{y}/{x}?f=jpeg";
 
         //常规底图
-        // let url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
-        let url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+        let url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
+        // let url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
         const tileProvider0 = new TileProvider(url, tinyearth.scene.getCamera());
         tileProvider0.setMinLevel(2);
         tileProvider0.setMaxLevel(20);
@@ -185,6 +204,8 @@ function main() {
         timer.start();
         addTimeHelper(timer, document.getElementById("helper"));
         tinyearth.addTimer(timer);
+
+        addDebugHelper(document.getElementById("helper"), tinyearth);
 
         tinyearth.draw();
     } else {

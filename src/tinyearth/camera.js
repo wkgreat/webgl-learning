@@ -160,6 +160,10 @@ class Camera {
         return this.#from;
     }
 
+    getTo() {
+        return this.#to;
+    }
+
     getLevel() {
 
     }

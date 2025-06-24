@@ -1,10 +1,10 @@
 import { glMatrix, vec3, vec4 } from "gl-matrix";
 import proj4 from "proj4";
-import { loadImage } from "../common/imageutils.js";
 import Frustum from "./frustum.js";
-import { Plane, pointOutSidePlane } from "./geometry.js";
+import { Plane, planeCrossPlane, pointOutSidePlane, rayCrossTriangle, Triangle } from "./geometry.js";
 import { vec3_add, vec3_normalize, vec3_sub, vec3_t4 } from "./glmatrix_utils.js";
 import { EPSG_3857, EPSG_4326, EPSG_4978 } from "./proj.js";
+import { loadTileImage } from "./tileutils.js";
 glMatrix.setMatrixArrayType(Array);
 
 const XLIMIT = [-20037508.3427892, 20037508.3427892];
@@ -142,51 +142,83 @@ export class Tile {
             return true;
         }
 
-        // const ext = this.extent();
-        // let p0 = [ext[0], ext[1]];
-        // let p1 = [ext[0], ext[3]];
-        // let p2 = [ext[2], ext[1]];
-        // let p3 = [ext[2], ext[3]];
-        // p0 = proj4(EPSG_3857, EPSG_4326, p0);
-        // p1 = proj4(EPSG_3857, EPSG_4326, p1);
-        // p2 = proj4(EPSG_3857, EPSG_4326, p2);
-        // p3 = proj4(EPSG_3857, EPSG_4326, p3);
-
-        // p0 = proj4(EPSG_4326, EPSG_4978, [...p0, 0]);
-        // p1 = proj4(EPSG_4326, EPSG_4978, [...p1, 0]);
-        // p2 = proj4(EPSG_4326, EPSG_4978, [...p2, 0]);
-        // p3 = proj4(EPSG_4326, EPSG_4978, [...p3, 0]);
-
-        // p0 = vec3.fromValues(p0[0], p0[1], p0[2]);
-        // p1 = vec3.fromValues(p1[0], p1[1], p1[2]);
-        // p2 = vec3.fromValues(p2[0], p2[1], p2[2]);
-        // p3 = vec3.fromValues(p3[0], p3[1], p3[2]);
-
         const [p0, p1, p2, p3] = this.getNormals();
 
-        const viewpoint = frustum.getViewpoint();
-        const sp0 = vec3_normalize(p0);
-        const sp1 = vec3_normalize(p1);
-        const sp2 = vec3_normalize(p2);
-        const sp3 = vec3_normalize(p3);
+        if (this.z <= 5) {
+            const viewpoint = frustum.getViewpoint();
+            const targetpoint = frustum.getTargetpoint();
+            const view = vec3_normalize(vec3_sub(targetpoint, viewpoint));
+            const np0 = vec3_normalize(p0);
+            const np1 = vec3_normalize(p1);
+            const np2 = vec3_normalize(p2);
+            const np3 = vec3_normalize(p3);
 
-        const vp0 = vec3_sub(viewpoint, p0);
-        const vp1 = vec3_sub(viewpoint, p1);
-        const vp2 = vec3_sub(viewpoint, p2);
-        const vp3 = vec3_sub(viewpoint, p3);
+            const d0 = vec3.dot(np0, view);
+            const d1 = vec3.dot(np1, view);
+            const d2 = vec3.dot(np2, view);
+            const d3 = vec3.dot(np3, view);
 
-        const d0 = vec3.dot(sp0, vp0);
-        const d1 = vec3.dot(sp1, vp1);
-        const d2 = vec3.dot(sp2, vp2);
-        const d3 = vec3.dot(sp3, vp3);
+            return d0 >= 0 && d1 >= 0 && d2 >= 0 && d3 >= 0;
+        } else {
+            const viewpoint = frustum.getViewpoint();
+            const sp0 = vec3_normalize(p0);
+            const sp1 = vec3_normalize(p1);
+            const sp2 = vec3_normalize(p2);
+            const sp3 = vec3_normalize(p3);
 
-        const cp = vec3_add(p0, vec3_add(p1, vec3_add(p2, p3)));
-        const cv0 = vec3_normalize(cp)
-        const cv1 = vec3_normalize(vec3_sub(viewpoint, cp));
-        const cd = vec3.dot(cv0, cv1);
+            const vp0 = vec3_sub(viewpoint, p0);
+            const vp1 = vec3_sub(viewpoint, p1);
+            const vp2 = vec3_sub(viewpoint, p2);
+            const vp3 = vec3_sub(viewpoint, p3);
 
-        return !(d0 >= 0 || d1 >= 0 || d2 >= 0 || d3 >= 0 || cd >= 0);
+            const d0 = vec3.dot(sp0, vp0);
+            const d1 = vec3.dot(sp1, vp1);
+            const d2 = vec3.dot(sp2, vp2);
+            const d3 = vec3.dot(sp3, vp3);
 
+            const cp = vec3_add(p0, vec3_add(p1, vec3_add(p2, p3)));
+            const cv0 = vec3_normalize(cp)
+            const cv1 = vec3_normalize(vec3_sub(viewpoint, cp));
+            const cd = vec3.dot(cv0, cv1);
+
+            return !(d0 >= 0 || d1 >= 0 || d2 >= 0 || d3 >= 0 || cd >= 0);
+        }
+
+
+
+    }
+
+    tileIsBack2(viewpoint, targetpoint) {
+        const [p0, p1, p2, p3] = this.getNormals();
+        const view = vec3_normalize(vec3_sub(targetpoint, viewpoint));
+
+        // const wp0 = proj4(EPSG_4978, EPSG_4326, p0);
+        // const wp1 = proj4(EPSG_4978, EPSG_4326, p1);
+        // const wp2 = proj4(EPSG_4978, EPSG_4326, p2);
+        // const wp3 = proj4(EPSG_4978, EPSG_4326, p3);
+        // const wvp = proj4(EPSG_4978, EPSG_4326, viewpoint);
+
+        const np0 = vec3_normalize(p0);
+        const np1 = vec3_normalize(p1);
+        const np2 = vec3_normalize(p2);
+        const np3 = vec3_normalize(p3);
+
+        // const vp0 = vec3_sub(viewpoint, p0);
+        // const vp1 = vec3_sub(viewpoint, p1);
+        // const vp2 = vec3_sub(viewpoint, p2);
+        // const vp3 = vec3_sub(viewpoint, p3);
+
+        const d0 = vec3.dot(np0, view);
+        const d1 = vec3.dot(np1, view);
+        const d2 = vec3.dot(np2, view);
+        const d3 = vec3.dot(np3, view);
+
+        // const cp = vec3_add(p0, vec3_add(p1, vec3_add(p2, p3)));
+        // const cv0 = vec3_normalize(cp)
+        // const cv1 = vec3_normalize(vec3_sub(viewpoint, cp));
+        // const cd = vec3.dot(cv0, cv1);
+
+        return d0 >= 0 && d1 >= 0 && d2 >= 0 && d3 >= 0;
     }
 
     intersectwithFrustumECEF(frustum) {
@@ -323,7 +355,7 @@ export class Tile {
     }
 
     async fetchTile() {
-        const image = await loadImage(this.url);
+        const image = await loadTileImage(this.url, this.x, this.y, this.z);
         this.image = image;
         this.ready = true;
         return this.image;
@@ -335,7 +367,6 @@ export class Tile {
     }
 
     async toMesh() {
-        console.log("to mesh...");
         await this.fetchTile();
         const data = TileMesher.toMesh(this, 4, EPSG_4978);
         this.mesh = data.vertices;

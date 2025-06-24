@@ -60,6 +60,9 @@ export default class Timer {
     stop() {
         this.running = false;
     }
+    reset() {
+        this.currentTime = Date.now();
+    }
     #setLastFrameTime(t) {
         this.lastFrameTime = t;
     }
@@ -76,6 +79,22 @@ export default class Timer {
 }
 
 /**
+ * @param {Date} date
+*/
+function formatDateToDatetimeLocal(date) {
+    const pad = n => String(n).padStart(2, '0');
+
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1); // 月份从 0 开始
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+    const seconds = pad(date.getSeconds())
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
+/**
  * @param {Timer} timer
  * @param {HTMLDivElement} root  
 */
@@ -85,12 +104,15 @@ export function addTimeHelper(timer, root) {
     const multiplierLabelId = `multiplier-${crypto.randomUUID()}`;
     const innerHTML = `
         <div>
-        <label>计时器:</lable><button id="timer-start-button">开始计时器</button> 
+        <label>计时器:</lable></br>
+        <button id="timer-start-button">开始计时器</button>
+        <button id="timer-reset-button">🔄重置</button> 
+        
         </br>
         <label>倍速:</label>
         <input id="timer-multipler-input" type="range" value="${timer.getMultipler()}" min="1" max="100000">
-        <label id="${multiplierLabelId}"></label></br>
-        <label id="time-laber">时间</label>      
+        <label id="${multiplierLabelId}"></label></br>   
+        <input type="datetime-local" id="timer-time-input" step="1" value="${formatDateToDatetimeLocal(timer.getDate())}"></input>  
         </div>
     `
 
@@ -101,14 +123,15 @@ export function addTimeHelper(timer, root) {
     const multiplierLabel = document.getElementById(multiplierLabelId);
     multiplierLabel.innerHTML = `x${timer.getMultipler()}`;
 
-    const timeLabel = document.getElementById("time-laber");
     const multiplerInput = document.getElementById("timer-multipler-input");
     const startButton = document.getElementById("timer-start-button");
+    const resetButton = document.getElementById("timer-reset-button");
+    const timeInput = document.getElementById("timer-time-input");
 
     if (timer.eventBus) {
         timer.eventBus.addEventListener(EVENT_TIMER_TICK, {
             callback: (_timer) => {
-                timeLabel.innerText = _timer.getDate().toLocaleString();
+                timeInput.value = formatDateToDatetimeLocal(_timer.getDate())
             }
         })
     }
@@ -134,6 +157,17 @@ export function addTimeHelper(timer, root) {
             timer.start();
             startButton.innerText = "🟥暂停";
         }
+    });
+
+    resetButton.addEventListener('click', () => {
+        timer.reset();
+        timeInput.value = formatDateToDatetimeLocal(timer.getDate());
+    });
+
+    timeInput.addEventListener('input', (event) => {
+        const value = event.target.value;
+        const fullValue = value.length === 16 ? value + ":00" : value;
+        timer.currentTime = new Date(fullValue).getTime();
     });
 
 }
