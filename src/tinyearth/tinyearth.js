@@ -2,13 +2,15 @@ import { mat4 } from "gl-matrix";
 import { buildFrustum } from "./frustum.js";
 import Scene from "./scene.js";
 import { getSunPositionECEF } from "./sun.js";
-import { addTileProviderHelper, GlobeTileProgram, TileProvider } from "./tilerender.js";
+import { addTileProviderHelper, addTileSelectHelper, GlobeTileProgram, TileProvider } from "./tilerender.js";
 import Timer, { addTimeHelper, EVENT_TIMER_TICK } from "./timer.js";
 import "./tinyearth.css";
 import proj4 from "proj4";
 import { EPSG_4326, EPSG_4978 } from "./proj.js";
 import EventBus from "./event.js";
 import { addDebugHelper } from "./helper.js";
+import { MousePositionTool } from "./tools.js";
+import { addMenu } from "./menu.js";
 
 let tinyearth = null;
 
@@ -56,6 +58,10 @@ export default class TinyEarth {
             that.viewHeight = canvas.height;
             that.viewWidth = canvas.width;
             that.gl.viewport(0, 0, that.viewWidth, that.viewHeight);
+            if (that.scene) {
+                this.scene.setViewHeight(that.viewHeight);
+                this.scene.setViewWidth(that.viewWidth);
+            }
         });
         this.globeTilePorgram = new GlobeTileProgram(this);
     }
@@ -149,7 +155,7 @@ function main() {
 
         tinyearth = new TinyEarth(canvas);
 
-        const cameraFrom = proj4(EPSG_4326, EPSG_4978, [118.767335, 32.050471, 1E7]);
+        const cameraFrom = proj4(EPSG_4326, EPSG_4978, [118.778869, 32.043823, 1E7]);
         const cameraTo = [0, 0, 0];
         const cameraUp = [0, 0, 1];
 
@@ -187,6 +193,7 @@ function main() {
         tileProvider0.setMaxLevel(20);
         tileProvider0.setIsNight(false);
         addTileProviderHelper(document.getElementById("helper"), "影像瓦片底图", tileProvider0);
+        addTileSelectHelper(document.getElementById("helper"), "影像瓦片底图", tileProvider0);
         tinyearth.addTileProvider(tileProvider0);
 
         //夜间底图
@@ -196,6 +203,7 @@ function main() {
         tileProvider1.setMaxLevel(6);
         tileProvider1.setIsNight(true);
         addTileProviderHelper(document.getElementById("helper"), "夜晚灯光瓦片底图", tileProvider1);
+
         tinyearth.addTileProvider(tileProvider1);
 
         const timer = new Timer(Date.now());
@@ -206,6 +214,11 @@ function main() {
         tinyearth.addTimer(timer);
 
         addDebugHelper(document.getElementById("helper"), tinyearth);
+
+        const mousePosTool = new MousePositionTool(tinyearth);
+        mousePosTool.enable();
+
+        addMenu(tinyearth);
 
         tinyearth.draw();
     } else {

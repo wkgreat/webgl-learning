@@ -477,22 +477,6 @@ export class TileTree {
                 curNode.tile.toMesh();
             }
         }
-        if (curNode.key.z === 0 && curNode.key.x === 0 && curNode.key.y === 0) {
-            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
-        }
-        if (curNode.key.z === 1 && curNode.key.x === 1 && curNode.key.y === 0) {
-            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
-        }
-        if (curNode.key.z === 2 && curNode.key.x === 3 && curNode.key.y === 0) {
-            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
-        }
-        if (curNode.key.z === 3 && curNode.key.x === 6 && curNode.key.y === 3) {
-            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
-        }
-        if (curNode.key.z === 4 && curNode.key.x === 13 && curNode.key.y === 6) {
-            console.log(`viewpoint: ${frustum.getViewpoint()}, targetpoint: ${frustum.getTargetpoint()}`);
-            console.log(`(${curNode.key.z},${curNode.key.x},${curNode.key.y}): overlap: ${curNode.tile.intersectFrustum(frustum)}, isBack: ${curNode.tile.tileIsBack(frustum)}`)
-        }
 
         if (curNode.tile != null) {
             if ((!curNode.tile.intersectFrustum(frustum)) || (curNode.key.z > this.#startRecLevel && curNode.tile.tileIsBack(frustum))) {
@@ -694,5 +678,64 @@ export function addTileProviderHelper(root, title, tileProvider) {
         console.error("addTileProviderHelper checkbox is null.");
     }
 
+}
+
+/**
+ * @typedef TileInfo
+ * @property {string} name
+ * @property {string} url
+ * @property {number} minLevel
+ * @property {number} maxLevel
+*/
+
+/** @type {TileInfo[]}*/
+const tileResources = [
+    {
+        name: "谷歌影像",
+        url: "",
+        minLevel: 1,
+        maxLevel: 20
+    },
+    {
+        name: "ESRI影像",
+        url: "",
+        minLevel: 1,
+        maxLevel: 20
+    }
+];
+
+function createTileOptions() {
+    let options = "";
+    for (let info of tileResources) {
+        options = `${options}<option value="xxx">${info.name}</option>`
+    }
+    return options;
+}
+
+/**
+ * @param {HTMLDivElement} root  
+ * @param {string} title 
+ * @param {TileProvider} tileProvider 
+*/
+export function addTileSelectHelper(root, title, tileProvider) {
+
+    const divId = `tile-select-helper-${crypto.randomUUID()}`;
+
+    const innerHTML = `
+    
+    <div>
+        <label>${title} 瓦片选择器</label></br>
+        <select id="tile-select" name="tile-select">
+            ${createTileOptions()}
+        </select>
+    </div>
+    
+    `;
+
+    const div = createHelperDiv(divId, innerHTML);
+
+    root.appendChild(div);
+
+    //TODO add callback
 }
 

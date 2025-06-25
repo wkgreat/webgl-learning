@@ -1,6 +1,45 @@
 import { glMatrix, vec3, vec4 } from "gl-matrix";
-import { vec3_cross, vec3_sub } from "./glmatrix_utils.js";
+import { vec3_add, vec3_cross, vec3_scale, vec3_sub } from "./glmatrix_utils.js";
+import { EPSG_4978 } from "./proj.js";
 glMatrix.setMatrixArrayType(Array);
+
+/**
+ * @class Point in 3D space.
+*/
+export class Point3D {
+    /** @type {vec3} */
+    position = vec3.fromValues(0, 0, 0);
+    /** @type {import("./proj.js").projcode} */
+    projcode = EPSG_4978;
+
+    constructor() {}
+
+    static fromVec3(v) {
+        const p = new Point3D();
+        p.position = v;
+        return p;
+    }
+
+    static fromXYZ(x, y, z) {
+        const p = new Point3D();
+        p.position = vec3.fromValues(x, y, z);
+        return p;
+    }
+
+    setX(x) { this.position[0] = x; }
+    setY(y) { this.position[1] = y; }
+    setZ(z) { this.position[2] = z; }
+    getX() { return this.position[0] };
+    getY() { return this.position[1] };
+    getZ() { return this.position[2] };
+
+    /**@param {import("./proj.js").projcode} code */
+    setProjcode(code) { this.projcode = code; }
+
+    /**@returns {import("./proj.js").projcode} */
+    getProjcode() { return this.projcode; }
+
+}
 
 export class Triangle {
 
@@ -212,4 +251,57 @@ export function planeCrossPlane(plane0, plane1) {
         ray: ray
     }
 
+}
+
+export class Sphere {
+
+    /**@type {vec3}*/
+    center = vec3.fromValues(0, 0, 0);
+    /**@type {number}*/
+    radius = 1;
+
+    constructor(center, radius) {
+        this.center = center;
+        this.radius = radius;
+    }
+}
+
+/**
+ * @param {Ray} ray
+ * @param {Sphere} sphere  
+ * @param {boolean} [all=false] return all points, or positive closest point
+*/
+export function rayCrossSphere(ray, sphere, all = false) {
+
+    const oc = vec3_sub(ray.origin, sphere.center);
+    const b = vec3.dot(ray.direct, oc);
+    const c = vec3.dot(oc, oc) - sphere.radius * sphere.radius;
+    const d = b * b - c;
+    if (d < 0) {
+        return null;
+    }
+    const sd = Math.sqrt(d);
+    const t0 = -b - sd;
+    const t1 = -b + sd;
+
+    const epsilon = -1 * (t1 - t0) * 1E-5;
+
+    if (all) {
+        const p0 = vec3_add(ray.origin, vec3_scale(ray.direct, t0));
+        const p1 = vec3_add(ray.origin, vec3_scale(ray.direct, t1));
+        return [Point3D.fromVec3(p0), Point3D.fromVec3(p1)];
+    } else {
+        let t;
+        if (t0 >= epsilon && t1 >= epsilon) {
+            t = Math.min(t0, t1);
+        } else if (t0 >= epsilon) {
+            t = t0;
+        } else if (t1 >= epsilon) {
+            t = t1;
+        } else {
+            return null;
+        }
+        const p = vec3_add(ray.origin, vec3_scale(ray.direct, t));
+        return [Point3D.fromVec3(p)];
+    }
 }

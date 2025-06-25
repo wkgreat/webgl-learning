@@ -66,6 +66,20 @@ export default class Scene {
         return this.#projection;
     }
 
+    getViewportMatrix() {
+        const m = mat4.create();
+        const w = this.#viewWidth;
+        const h = this.#viewHeight;
+        mat4.set(
+            m,
+            w / 2, 0, 0, 0,
+            0, h / 2, 0, 0,
+            0, 0, 0.5, 0,
+            w / 2, h / 2, 0.5, 1
+        );
+        return m;
+    }
+
     /**
      * @param {HTMLCanvasElement} canvas 
     */

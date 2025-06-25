@@ -191,39 +191,6 @@ export class Tile {
 
     }
 
-    tileIsBack2(viewpoint, targetpoint) {
-        const [p0, p1, p2, p3] = this.getNormals();
-        const view = vec3_normalize(vec3_sub(targetpoint, viewpoint));
-
-        // const wp0 = proj4(EPSG_4978, EPSG_4326, p0);
-        // const wp1 = proj4(EPSG_4978, EPSG_4326, p1);
-        // const wp2 = proj4(EPSG_4978, EPSG_4326, p2);
-        // const wp3 = proj4(EPSG_4978, EPSG_4326, p3);
-        // const wvp = proj4(EPSG_4978, EPSG_4326, viewpoint);
-
-        const np0 = vec3_normalize(p0);
-        const np1 = vec3_normalize(p1);
-        const np2 = vec3_normalize(p2);
-        const np3 = vec3_normalize(p3);
-
-        // const vp0 = vec3_sub(viewpoint, p0);
-        // const vp1 = vec3_sub(viewpoint, p1);
-        // const vp2 = vec3_sub(viewpoint, p2);
-        // const vp3 = vec3_sub(viewpoint, p3);
-
-        const d0 = vec3.dot(np0, view);
-        const d1 = vec3.dot(np1, view);
-        const d2 = vec3.dot(np2, view);
-        const d3 = vec3.dot(np3, view);
-
-        // const cp = vec3_add(p0, vec3_add(p1, vec3_add(p2, p3)));
-        // const cv0 = vec3_normalize(cp)
-        // const cv1 = vec3_normalize(vec3_sub(viewpoint, cp));
-        // const cd = vec3.dot(cv0, cv1);
-
-        return d0 >= 0 && d1 >= 0 && d2 >= 0 && d3 >= 0;
-    }
-
     intersectwithFrustumECEF(frustum) {
 
         const ext = this.extent();

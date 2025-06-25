@@ -12,9 +12,10 @@
 
 .cls-helper-div label,
 .cls-helper-div input,
-.cls-helper-div button {
+.cls-helper-div button,
+.cls-helper-div select {
     line-height: 1;
-    margin: 2px;
+    margin: 4px;
 }
 
 

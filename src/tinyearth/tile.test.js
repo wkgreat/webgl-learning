@@ -91,19 +91,6 @@ describe("tile", () => {
 
     });
 
-    test("tile_is_back", () => {
-        //viewpoint: -4359992.357987573,7941517.930114926,5649520.125847518, targetpoint: -0.4083608749325508,0.7438098381739214,0.5291392259698825
-        //4,13,6
-
-        const viewpoint = vec3.fromValues(-4359992.357987573, 7941517.930114926, 5649520.125847518);
-        const targetpoint = vec3.fromValues(-0.4083608749325508, 0.7438098381739214, 0.5291392259698825);
-        const tile = new Tile(13, 6, 4, "");
-        const r = tile.tileIsBack2(viewpoint, targetpoint);
-
-        expect(r).toBeFalsy();
-
-    });
-
 });
 
 
