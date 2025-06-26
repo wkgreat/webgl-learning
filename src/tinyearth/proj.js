@@ -15,3 +15,7 @@ export const PROJ_WEB = EPSG_3857;
 export const PROJ_ECEF = EPSG_4978;
 
 export const EARTH_RADIUS = 6378137;
+export const WGS84_SPHERIOD_A = 6378137;
+export const WGS84_SPHERIOD_B = 6356752.314245;
+export const WGS84_SPHERIOD_F = 1.0 / 298.257223563;
+

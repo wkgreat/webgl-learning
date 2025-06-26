@@ -111,6 +111,7 @@ class Camera {
     */
     zoom(f) {
 
+        //TODO 考虑地球为椭球体
         const d = vec4.create();
         const fromLonLatAlt = proj4(EPSG_4978, EPSG_4326, Array.from(this.#from.slice(0, 3)));
         const toLonLatAlt = [fromLonLatAlt[0], fromLonLatAlt[1], 1];

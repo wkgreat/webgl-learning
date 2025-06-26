@@ -305,3 +305,74 @@ export function rayCrossSphere(ray, sphere, all = false) {
         return [Point3D.fromVec3(p)];
     }
 }
+
+export class Spheriod {
+
+    /**@type {vec3} */
+    params = vec3.fromValues(1, 1, 1);
+
+    constructor(a, b, c) {
+        this.params = vec3.fromValues(a, b, c);
+    }
+
+}
+
+/**
+ * @param {Ray} ray
+ * @param {Spheriod} spheriod
+*/
+export function rayCrossSpheriod(ray, spheriod, all = false) {
+
+
+    const dx = ray.direct[0];
+    const dy = ray.direct[1];
+    const dz = ray.direct[2];
+    const a = spheriod.params[0];
+    const b = spheriod.params[1];
+    const c = spheriod.params[2];
+    const x = ray.origin[0];
+    const y = ray.origin[1];
+    const z = ray.origin[2];
+
+    const dx2 = dx * dx;
+    const dy2 = dy * dy;
+    const dz2 = dz * dz;
+
+    const a2 = a * a;
+    const b2 = b * b;
+    const c2 = c * c;
+
+    const x2 = x * x;
+    const y2 = y * y;
+    const z2 = z * z;
+
+    const A = dx2 / a2 + dy2 / b2 + dz2 / c2;
+    const B = 2 * x * dx / a2 + 2 * y * dy / b2 + 2 * z * dz / c2;
+    const C = x2 / a2 + y2 / b2 + z2 / c2 - 1;
+
+    const D = B * B - 4 * A * C;
+    if (D < 0) {
+        return null;
+    }
+
+    const t0 = (-B - Math.sqrt(D)) / (2 * A);
+    const t1 = (-B + Math.sqrt(D)) / (2 * A);
+
+    if (all) {
+        const p0 = vec3_add(ray.origin, vec3_scale(ray.direct, t0));
+        const p1 = vec3_add(ray.origin, vec3_scale(ray.direct, t1));
+        return [Point3D.fromVec3(p0), Point3D.fromVec3(p1)];
+    } else {
+        let t = 0;
+        if (t0 >= 0 && t1 >= 0) {
+            t = Math.min(t0, t1);
+        } else if (t0 >= 0) {
+            t = t0;
+        } else if (t1 >= 0) {
+            t = t1;
+        }
+        const p = vec3_add(ray.origin, vec3_scale(ray.direct, t));
+        return [Point3D.fromVec3(p)];
+    }
+
+}

@@ -1,8 +1,8 @@
 import { vec3, vec4 } from "gl-matrix";
-import { Point3D, Ray, rayCrossSphere, Sphere } from "./geometry.js";
+import { Point3D, Ray, rayCrossSphere, rayCrossSpheriod, Sphere, Spheriod } from "./geometry.js";
 import Scene from "./scene.js";
 import { mat4_inv, mat4_mul, vec3_normalize, vec3_sub, vec4_affine, vec4_t3 } from "./glmatrix_utils.js";
-import { EARTH_RADIUS, EPSG_4326, EPSG_4978 } from "./proj.js";
+import { EARTH_RADIUS, EPSG_4326, EPSG_4978, WGS84_SPHERIOD_A, WGS84_SPHERIOD_B } from "./proj.js";
 import TinyEarth from "./tinyearth.js";
 import proj4 from "proj4";
 
@@ -32,14 +32,13 @@ export function positionAtPixel(scene, x, y) {
     const d = vec3_normalize(vec3_sub(wp, vf));
 
     const ray = new Ray(vf, d);
-    const sphere = new Sphere(vec3.fromValues(0, 0, 0), EARTH_RADIUS);
-    const crossPoints = rayCrossSphere(ray, sphere, true);
+    const spheriod = new Spheriod(WGS84_SPHERIOD_A, WGS84_SPHERIOD_A, WGS84_SPHERIOD_B);
+    const crossPoints = rayCrossSpheriod(ray, spheriod, false);
     if (crossPoints === null || crossPoints.length === 0) {
         return null;
     } else {
         return crossPoints[0];
     }
-
 }
 
 export class MousePositionTool {

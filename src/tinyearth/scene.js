@@ -66,6 +66,9 @@ export default class Scene {
         return this.#projection;
     }
 
+    /**
+     * 获取视口变换矩阵（包含Y轴反转）
+    */
     getViewportMatrix() {
         const m = mat4.create();
         const w = this.#viewWidth;
@@ -73,7 +76,7 @@ export default class Scene {
         mat4.set(
             m,
             w / 2, 0, 0, 0,
-            0, h / 2, 0, 0,
+            0, -h / 2, 0, 0,
             0, 0, 0.5, 0,
             w / 2, h / 2, 0.5, 1
         );
