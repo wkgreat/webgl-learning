@@ -26,8 +26,8 @@ export function positionAtPixel(scene, x, y) {
     const sp = vec4.fromValues(x, y, 0, 1);
     const cp = vec4_affine(sp, im_sceen);
 
-    // const wp = vec4_t3(vec4_affine(cp, im_projview));
-    const wp = vec4_t3(vec4_affine(vec4_affine(cp, im_proj), im_view));
+    const wp = vec4_t3(vec4_affine(cp, im_projview));
+    // const wp = vec4_t3(vec4_affine(vec4_affine(cp, im_proj), im_view));
     const vf = vec4_t3(scene.getCamera().getFrom());
     const d = vec3_normalize(vec3_sub(wp, vf));
 

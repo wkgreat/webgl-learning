@@ -1,4 +1,4 @@
-import { mat4 } from "gl-matrix";
+import { mat4, vec4, glMatrix } from "gl-matrix";
 import { buildFrustum } from "./frustum.js";
 import Scene from "./scene.js";
 import { getSunPositionECEF } from "./sun.js";
@@ -11,6 +11,10 @@ import EventBus from "./event.js";
 import { addDebugHelper } from "./helper.js";
 import { MousePositionTool } from "./tools.js";
 import { addMenu } from "./menu.js";
+import { SkyBoxProgram } from "./skybox.js";
+import { mat4_inv, mat4_mul, vec4_t3 } from "./glmatrix_utils.js";
+import { checkGLError } from "./debug.js";
+glMatrix.setMatrixArrayType(Array);
 
 let tinyearth = null;
 
@@ -36,6 +40,9 @@ export default class TinyEarth {
 
     /**@type {GlobeTileProgram|null}*/
     globeTilePorgram = null;
+
+    /** @type {SkyBoxProgram} */
+    skyboxProgram = null;
 
 
     /**@type {boolean}*/
@@ -64,6 +71,7 @@ export default class TinyEarth {
             }
         });
         this.globeTilePorgram = new GlobeTileProgram(this);
+        this.skyboxProgram = new SkyBoxProgram(this);
     }
 
     glInit() {
@@ -123,6 +131,9 @@ export default class TinyEarth {
 
         async function drawFrame(t) {
             if (that.isStartDraw()) {
+
+                that.timer.tick(t);
+
                 that.gl.clearColor(0.0, 0.0, 0.0, 0.0);
                 that.gl.clearDepth(1.0);
                 that.gl.clear(that.gl.COLOR_BUFFER_BIT | that.gl.DEPTH_BUFFER_BIT);
@@ -131,13 +142,26 @@ export default class TinyEarth {
 
                 const modelMtx = mat4.create();
                 const projMtx = that.scene.getProjection().perspective();
+                const viewMtx = that.scene.getCamera().getMatrix().viewMtx;
+
+                const invProjViewMtx = mat4.create();
+                mat4.multiply(invProjViewMtx, projMtx, viewMtx);
+                mat4.invert(invProjViewMtx, invProjViewMtx);
+                const cameraWorldPos = vec4_t3(that.scene.getCamera().getFrom());
+
+                that.skyboxProgram.setUniforms({
+                    u_invProjViewMtx: invProjViewMtx,
+                    u_worldCameraPos: cameraWorldPos
+                });
+
+                that.skyboxProgram.render();
+
+                checkGLError(that.gl, "render");
 
                 const frustum = buildFrustum(
                     that.scene.getProjection(),
                     that.scene.getCamera());
                 that.globeTilePorgram.setFrustum(frustum);
-
-                that.timer.tick(t);
 
                 that.globeTilePorgram.render(modelMtx, that.scene.getCamera(), projMtx);
             }
@@ -206,6 +230,27 @@ function main() {
 
         tinyearth.addTileProvider(tileProvider1);
 
+        //skybox
+        // tinyearth.skyboxProgram.setCubeMap([
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_X, src: "assets/data/starsky/px.png" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, src: "assets/data/starsky/py.png" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, src: "assets/data/starsky/pz.png" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, src: "assets/data/starsky/nx.png" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, src: "assets/data/starsky/ny.png" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, src: "assets/data/starsky/nz.png" }
+        // ]);
+
+        tinyearth.skyboxProgram.setCubeMap([
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_X, src: "assets/data/box_zoom/pos-x.jpg" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, src: "assets/data/box_zoom/neg-x.jpg" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, src: "assets/data/box_zoom/pos-y.jpg" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, src: "assets/data/box_zoom/neg-y.jpg" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, src: "assets/data/box_zoom/pos-z.jpg" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, src: "assets/data/box_zoom/neg-z.jpg" },
+        ]);
+
+
+        //timer
         const timer = new Timer(Date.now());
         timer.setEventBus(tinyearth.eventBus);
         timer.setMultipler(10000);

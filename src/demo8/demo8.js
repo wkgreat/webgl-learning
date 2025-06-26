@@ -116,18 +116,26 @@ async function draw(gl) {
 
     // 设置天空盒纹理
     const envTexture = gl.createTexture();
+    // const envFaces = [
+    //     { face: gl.TEXTURE_CUBE_MAP_POSITIVE_X, src: "assets/data/box_zoom/pos-x.jpg" },
+    //     { face: gl.TEXTURE_CUBE_MAP_NEGATIVE_X, src: "assets/data/box_zoom/neg-x.jpg" },
+    //     { face: gl.TEXTURE_CUBE_MAP_POSITIVE_Y, src: "assets/data/box_zoom/pos-y.jpg" },
+    //     { face: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, src: "assets/data/box_zoom/neg-y.jpg" },
+    //     { face: gl.TEXTURE_CUBE_MAP_POSITIVE_Z, src: "assets/data/box_zoom/pos-z.jpg" },
+    //     { face: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, src: "assets/data/box_zoom/neg-z.jpg" },
+    // ];
     const envFaces = [
-        { face: gl.TEXTURE_CUBE_MAP_POSITIVE_X, src: "assets/data/box_zoom/pos-x.jpg" },
-        { face: gl.TEXTURE_CUBE_MAP_NEGATIVE_X, src: "assets/data/box_zoom/neg-x.jpg" },
-        { face: gl.TEXTURE_CUBE_MAP_POSITIVE_Y, src: "assets/data/box_zoom/pos-y.jpg" },
-        { face: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, src: "assets/data/box_zoom/neg-y.jpg" },
-        { face: gl.TEXTURE_CUBE_MAP_POSITIVE_Z, src: "assets/data/box_zoom/pos-z.jpg" },
-        { face: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, src: "assets/data/box_zoom/neg-z.jpg" },
+        { face: gl.TEXTURE_CUBE_MAP_POSITIVE_X, src: "assets/data/starsky/px.png" },
+        { face: gl.TEXTURE_CUBE_MAP_POSITIVE_Y, src: "assets/data/starsky/py.png" },
+        { face: gl.TEXTURE_CUBE_MAP_POSITIVE_Z, src: "assets/data/starsky/pz.png" },
+        { face: gl.TEXTURE_CUBE_MAP_NEGATIVE_X, src: "assets/data/starsky/nx.png" },
+        { face: gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, src: "assets/data/starsky/ny.png" },
+        { face: gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, src: "assets/data/starsky/nz.png" }
     ];
     envFaces.forEach((face) => {
         const img = new Image();
         img.src = face.src;
-        gl.texImage2D(face.face, 0, gl.RGBA, 512, 512, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); //立即渲染纹理
+        gl.texImage2D(face.face, 0, gl.RGBA, 256, 256, 0, gl.RGBA, gl.UNSIGNED_BYTE, null); //立即渲染纹理
         img.onload = function () {
             // 图片加载完成将其拷贝到纹理
             gl.bindTexture(gl.TEXTURE_CUBE_MAP, envTexture);

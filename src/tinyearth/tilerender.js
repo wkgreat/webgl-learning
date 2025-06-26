@@ -216,6 +216,7 @@ export class GlobeTileProgram {
     }
 
     render(modelMtx, viewMtx, projMtx) {
+        this.gl.useProgram(this.program);
         const that = this;
         for (let provider of this.tileProviders) {
             provider.frustum = this.tinyearth.scene.getFrustum();
