@@ -153,8 +153,8 @@ export class SkyBoxProgram {
             const img = new Image();
             img.src = face.src;
             that.gl.bindTexture(that.gl.TEXTURE_CUBE_MAP, that.#texutre);
-            this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
-            that.gl.texImage2D(face.face, 0, that.gl.RGBA, 256, 256, 0, that.gl.RGBA, that.gl.UNSIGNED_BYTE, null); //立即渲染纹理
+            that.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
+            that.gl.texImage2D(face.face, 0, that.gl.RGBA, 2048, 2048, 0, that.gl.RGBA, that.gl.UNSIGNED_BYTE, null); //立即渲染纹理
             img.onload = function () {
                 // 图片加载完成将其拷贝到纹理
                 that.gl.bindTexture(that.gl.TEXTURE_CUBE_MAP, that.#texutre);
