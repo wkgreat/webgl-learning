@@ -372,6 +372,27 @@ export class TileTree {
         }
     }
 
+
+    /**
+     * @param {(node:TileNode)=>void} callback  
+    */
+    forEachNode(callback) {
+        this.#forEachNode(this.root, callback);
+    }
+
+    /**
+     * @param {TileNode} curNode
+     * @param {(node:TileNode)=>void} callback  
+    */
+    #forEachNode(curNode, callback) {
+        if (curNode) {
+            callback(curNode);
+        }
+        for (let node of curNode.children) {
+            this.#forEachNode(node, callback);
+        }
+    }
+
     /**
      * @param {number} x
      * @param {number} y
@@ -575,6 +596,27 @@ export class TileProvider {
         return this.#isNight;
     }
 
+    changeTileSource(url, minLevel, maxLevel) {
+        this.url = url;
+        this.minLevel = minLevel;
+        this.maxLevel = maxLevel;
+        const that = this;
+        if (this.tiletree) {
+            this.tiletree.forEachNode(node => {
+                node.tile = null;
+                if (node.texture) {
+                    that.tinyearth.gl.deleteTexture(node.texture);
+                    node.texture = null;
+                }
+                if (node.vertexBuffer) {
+                    that.tinyearth.gl.deleteBuffer(node.vertexBuffer);
+                    node.vertexBuffer = null;
+                }
+            });
+        }
+        this.tiletree = new TileTree(this.url);
+    }
+
     /**
      * @param {Frustum} frustum 
     */
@@ -689,26 +731,50 @@ export function addTileProviderHelper(root, title, tileProvider) {
  * @property {number} maxLevel
 */
 
-/** @type {TileInfo[]}*/
-const tileResources = [
-    {
+/** @type {{string:TileInfo}}*/
+const tileResources = {
+    "GOOGLE_IMAGERY": {
         name: "谷歌影像",
-        url: "",
+        url: "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}",
         minLevel: 1,
         maxLevel: 20
     },
-    {
+    "ESRI_IMAGERY": {
         name: "ESRI影像",
-        url: "",
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        minLevel: 1,
+        maxLevel: 20
+    },
+    "ESRI_TOPO": {
+        name: "ESRI TOPO",
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}",
+        minLevel: 1,
+        maxLevel: 20
+    },
+    "OSM": {
+        name: "OSM",
+        url: "http://tile.openstreetmap.org/{z}/{x}/{y}.png",
+        minLevel: 1,
+        maxLevel: 20
+    },
+    "CARDODB_LIGHT_ALL": {
+        name: "CARDODB_LIGHT_ALL",
+        url: "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png",
+        minLevel: 1,
+        maxLevel: 20
+    },
+    "CARDODB_DARK_ALL": {
+        name: "CARDODB_DARK_ALL",
+        url: "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
         minLevel: 1,
         maxLevel: 20
     }
-];
+};
 
 function createTileOptions() {
     let options = "";
-    for (let info of tileResources) {
-        options = `${options}<option value="xxx">${info.name}</option>`
+    for (const [k, v] of Object.entries(tileResources)) {
+        options = `${options}<option value="${k}">${v.name}</option>`
     }
     return options;
 }
@@ -737,6 +803,12 @@ export function addTileSelectHelper(root, title, tileProvider) {
 
     root.appendChild(div);
 
-    //TODO add callback
+    const tileSelect = document.getElementById("tile-select");
+
+    tileSelect.addEventListener('change', event => {
+        const tileName = event.target.value;
+        const tileinfo = tileResources[tileName];
+        tileProvider.changeTileSource(tileinfo.url, tileinfo.minLevel, tileinfo.maxLevel);
+    });
 }
 

@@ -211,7 +211,7 @@ function main() {
         //常规底图
         let url = "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}";
         // let url = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-        const tileProvider0 = new TileProvider(url, tinyearth.scene.getCamera());
+        const tileProvider0 = new TileProvider(url, tinyearth);
         tileProvider0.setMinLevel(2);
         tileProvider0.setMaxLevel(20);
         tileProvider0.setIsNight(false);
@@ -221,7 +221,7 @@ function main() {
 
         //夜间底图
         url = "https://demo.ldproxy.net/earthatnight/map/tiles/WebMercatorQuad/{z}/{y}/{x}?f=jpeg"
-        const tileProvider1 = new TileProvider(url, tinyearth.scene.getCamera());
+        const tileProvider1 = new TileProvider(url, tinyearth);
         tileProvider1.setMinLevel(2);
         tileProvider1.setMaxLevel(6);
         tileProvider1.setIsNight(true);
