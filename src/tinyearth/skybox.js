@@ -3,7 +3,8 @@ import vertSource from "./skybox.vert";
 import fragSource from "./skybox.frag";
 import { mat4, vec3, glMatrix, vec4 } from "gl-matrix";
 import { checkGLError } from "./debug.js";
-import { mat4_inv, mat4_mul, vec3_normalize, vec3_sub, vec4_affine, vec4_t3 } from "./glmatrix_utils.js";
+import { mat4_inv, mat4_mul, vec3_add, vec3_cross, vec3_normalize, vec3_scale, vec3_sub, vec4_affine, vec4_t3 } from "./glmatrix_utils.js";
+import Scene from "./scene.js";
 glMatrix.setMatrixArrayType(Array);
 
 
@@ -42,34 +43,43 @@ export class SkyBoxProgram {
         this.program = this.createProgram();
     }
 
-    direction(p, cameraFrom, invProjViewMtx) {
-        const wp = vec4_t3(vec4_affine(p, invProjViewMtx));
-        const eye = vec4_t3(cameraFrom);
-        const d = vec3_normalize(vec3_sub(wp, eye));
-        return d;
+    /**
+     * @param {Scene} scene 
+    */
+    createVetexData(scene) {
 
-    }
+        const cameraFrom = scene.getCamera().getFrom();
+        const cameraTo = scene.getCamera().getTo();
+        const near = scene.getProjection().getNear();
+        const fovy = scene.getProjection().getFovy();
+        const aspect = scene.getProjection().getAspect();
 
-    createVertexArray() {
-        const points = [
-            [-1, 1, 1],
-            [-1, -1, 1],
-            [1, -1, 1],
-            [1, -1, 1],
-            [1, 1, 1],
-            [-1, 1, 1]
+        const forward = vec3_normalize(vec3_sub(vec4_t3(cameraTo), vec4_t3(cameraFrom)));
+        const worldup = vec3.fromValues(0, 0, 1);
+        const right = vec3_normalize(vec3_cross(worldup, forward));
+        const up = vec3_normalize(vec3_cross(forward, right));
+        const half_height = near * Math.tan(fovy / 2);
+        const half_width = aspect * half_height;
+
+        const leftup = vec3_normalize(vec3_add(vec3_add(vec3_scale(right, half_width), vec3_scale(up, half_height)), vec3_scale(forward, near)));
+        const rightup = vec3_normalize(vec3_add(vec3_add(vec3_scale(right, -half_width), vec3_scale(up, half_height)), vec3_scale(forward, near)));
+        const rightDown = vec3_normalize(vec3_add(vec3_sub(vec3_scale(right, -half_width), vec3_scale(up, half_height)), vec3_scale(forward, near)));
+        const leftDown = vec3_normalize(vec3_add(vec3_sub(vec3_scale(right, half_width), vec3_scale(up, half_height)), vec3_scale(forward, near)));
+
+        const vertices = [
+
+            -1, 1, 1, ...leftup, //leftup
+            -1, -1, 1, ...leftDown, //leftdown
+            1, -1, 1, ...rightDown, //rightdown
+            1, -1, 1, ...rightDown, //rightdown
+            1, 1, 1, ...rightup, //rightup
+            -1, 1, 1, ...leftup //leftup
+
         ]
-        const projMtx = this.tinyearth.scene.getProjection().perspective();
-        const viewMtx = this.tinyearth.scene.getCamera().getMatrix().viewMtx;
-        const invProjViewMtx = mat4_inv(mat4_mul(projMtx, viewMtx));
 
-        const vertices = [];
-        for (let p of points) {
-            vertices.push(...p);
-            const d = this.direction(vec4.fromValues(p[0], p[1], p[2], 1), this.tinyearth.scene.getCamera().getFrom(), invProjViewMtx);
-            vertices.push(...d);
-        }
         return new Float32Array(vertices);
+
+
     }
 
     createProgram() {
@@ -143,10 +153,12 @@ export class SkyBoxProgram {
             const img = new Image();
             img.src = face.src;
             that.gl.bindTexture(that.gl.TEXTURE_CUBE_MAP, that.#texutre);
+            this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, false);
             that.gl.texImage2D(face.face, 0, that.gl.RGBA, 256, 256, 0, that.gl.RGBA, that.gl.UNSIGNED_BYTE, null); //立即渲染纹理
             img.onload = function () {
                 // 图片加载完成将其拷贝到纹理
                 that.gl.bindTexture(that.gl.TEXTURE_CUBE_MAP, that.#texutre);
+                that.gl.pixelStorei(that.gl.UNPACK_FLIP_Y_WEBGL, false);
                 that.gl.texImage2D(face.face, 0, that.gl.RGBA, that.gl.RGBA, that.gl.UNSIGNED_BYTE, img);
                 that.gl.generateMipmap(that.gl.TEXTURE_CUBE_MAP);
             }
@@ -173,7 +185,7 @@ export class SkyBoxProgram {
             this.#buffer = this.gl.createBuffer();
         }
 
-        const vertices = this.createVertexArray();
+        const vertices = this.createVetexData(this.tinyearth.scene);
 
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.#buffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, vertices, this.gl.STATIC_DRAW);

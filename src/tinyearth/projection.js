@@ -26,11 +26,27 @@ class Projection {
         return mat4.perspective(this.projMtx, this.fovy, this.aspect, this.near, this.far);
     }
 
+    getFovy() {
+        return this.fovy;
+    }
+
     getFovx() {
         const half_fovy = this.fovy / 2;
         const t = Math.tan(half_fovy)
         const half_fovx = Math.atan(t * this.aspect)
         return 2 * half_fovx;
+    }
+
+    getNear() {
+        return this.near;
+    }
+
+    getFar() {
+        return this.far;
+    }
+
+    getAspect() {
+        return this.aspect;
     }
 
 };

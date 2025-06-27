@@ -8,9 +8,9 @@ varying vec4 v_position;
 
 void main() {
 
-    vec4 worldpos4 = u_invProjViewMtx * v_position;
-    vec3 worldpos3 = worldpos4.xyz / worldpos4.w;
-    vec3 direction = normalize(worldpos3 - u_worldCameraPos);
+    // vec4 worldpos4 = u_invProjViewMtx * v_position;
+    // vec3 worldpos3 = worldpos4.xyz / worldpos4.w;
+    vec3 direction = normalize(v_position.xyz - u_worldCameraPos);
     gl_FragColor = textureCube(u_skybox, direction);
 
 }

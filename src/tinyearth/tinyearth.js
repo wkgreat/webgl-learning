@@ -162,7 +162,6 @@ export default class TinyEarth {
                     that.scene.getProjection(),
                     that.scene.getCamera());
                 that.globeTilePorgram.setFrustum(frustum);
-
                 that.globeTilePorgram.render(modelMtx, that.scene.getCamera(), projMtx);
             }
             requestAnimationFrame(drawFrame);
@@ -191,8 +190,8 @@ function main() {
             },
             projection: {
                 fovy: Math.PI / 3,
-                near: 0.1,
-                far: 1E10
+                near: 1,
+                far: 1E8
             },
             viewport: {
                 width: tinyearth.viewWidth,
@@ -231,23 +230,23 @@ function main() {
         tinyearth.addTileProvider(tileProvider1);
 
         //skybox
-        // tinyearth.skyboxProgram.setCubeMap([
-        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_X, src: "assets/data/starsky/px.png" },
-        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, src: "assets/data/starsky/py.png" },
-        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, src: "assets/data/starsky/pz.png" },
-        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, src: "assets/data/starsky/nx.png" },
-        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, src: "assets/data/starsky/ny.png" },
-        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, src: "assets/data/starsky/nz.png" }
-        // ]);
-
         tinyearth.skyboxProgram.setCubeMap([
-            { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_X, src: "assets/data/box_zoom/pos-x.jpg" },
-            { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, src: "assets/data/box_zoom/neg-x.jpg" },
-            { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, src: "assets/data/box_zoom/pos-y.jpg" },
-            { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, src: "assets/data/box_zoom/neg-y.jpg" },
-            { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, src: "assets/data/box_zoom/pos-z.jpg" },
-            { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, src: "assets/data/box_zoom/neg-z.jpg" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_X, src: "assets/data/starsky/px.png" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, src: "assets/data/starsky/py.png" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, src: "assets/data/starsky/pz.png" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, src: "assets/data/starsky/nx.png" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, src: "assets/data/starsky/ny.png" },
+            { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, src: "assets/data/starsky/nz.png" }
         ]);
+
+        // tinyearth.skyboxProgram.setCubeMap([
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_X, src: "assets/data/box_zoom/pos-x.jpg" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_X, src: "assets/data/box_zoom/neg-x.jpg" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Y, src: "assets/data/box_zoom/pos-y.jpg" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y, src: "assets/data/box_zoom/neg-y.jpg" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_POSITIVE_Z, src: "assets/data/box_zoom/pos-z.jpg" },
+        //     { face: tinyearth.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z, src: "assets/data/box_zoom/neg-z.jpg" },
+        // ]);
 
 
         //timer
