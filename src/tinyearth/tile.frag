@@ -56,9 +56,10 @@ void main() {
     texcolor = texture2D(u_image, v_texcoord);
 
     if(u_isNight) {
+        float alpha = 4.0;
         vec3 vlgt = normalize(light.position - pos);
-        float night = clamp(-1.0 * dot(v_normal, vlgt) * 1.0, 0.0, 1.0);
-        vec4 color = texcolor * night;
+        float night = pow(((-1.0 * dot(v_normal, vlgt)) + 1.0) / 2.0, alpha);
+        vec4 color = vec4(texcolor.rgb, night);
         gl_FragColor = color;
     } else {
         gl_FragColor = shadeColorWithTexture(material, light, texcolor, ambient, v_normal, pos, eye);
