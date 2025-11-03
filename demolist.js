@@ -85,6 +85,10 @@ const demos = {
             "describe": "物体线框（wireframe）"
         },
         {
+            "name": "demo22",
+            "describe": "实例化渲染"
+        },
+        {
             "name": "tinyearth",
             "describe": "三维地球"
         }

@@ -1,6 +1,6 @@
 # TODO LIST
-日间+夜间瓦片mix 
-太阳class控制开关 
+日间+夜间瓦片mix  
+太阳class控制开关  
 FPS helper  
 惯性旋转  
 加载点云  
@@ -14,3 +14,5 @@ tilelevel优化
 ✅星空天空盒  
 标绘点  
 加载3D Tiles
+3dgs支持？
+moveTo/flyTo  
