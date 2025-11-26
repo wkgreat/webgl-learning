@@ -4,14 +4,15 @@ import fs from 'fs';
 import unzipper from 'unzipper';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import CopyWebpackPlugin from 'copy-webpack-plugin'
-import demos from './demolist.js';
-const demoList = demos.demos;
+import demos from './src/demolist.js';
+const webglDemos = demos.webglDemos;
+const webgpuDemos = demos.webgpuDemos;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const webpackEntry = {
-    app: './src/index.js'
+    index: './src/index.jsx'
 }
 
 class UnzipPlugin {
@@ -43,7 +44,8 @@ const webpackPlugins = [
         outputPath: "assets/data/pointcloud"
     }),
     new HtmlWebpackPlugin({
-        template: 'src/index.html'
+        template: 'src/index.html',
+        chunks: ['index'],
     }),
     new CopyWebpackPlugin({
         patterns: [
@@ -55,12 +57,25 @@ const webpackPlugins = [
     })
 ];
 
-for (const demo of demoList) {
-    console.log(demo);
-    webpackEntry[demo.name] = `./src/${demo.name}/${demo.name}.js`;
+for (const demo of webglDemos) {
+    const gltype = "webgl";
+    const entryName = `${gltype}-${demo.name}`
+    webpackEntry[entryName] = `./src/demos/${gltype}/${demo.name}/${demo.name}.js`;
     webpackPlugins.push(new HtmlWebpackPlugin({
-        template: `src/${demo.name}/${demo.name}.html`,
-        filename: `${demo.name}.html`
+        template: `src/demos/${gltype}/${demo.name}/${demo.name}.html`,
+        filename: `${gltype}-${demo.name}.html`,
+        chunks: [entryName]
+    }));
+}
+
+for (const demo of webgpuDemos) {
+    const gltype = "webgpu";
+    const entryName = `${gltype}-${demo.name}`
+    webpackEntry[entryName] = `./src/demos/${gltype}/${demo.name}/${demo.name}.js`;
+    webpackPlugins.push(new HtmlWebpackPlugin({
+        template: `src/demos/${gltype}/${demo.name}/${demo.name}.html`,
+        filename: `${gltype}-${demo.name}.html`,
+        chunks: [entryName]
     }));
 }
 
@@ -73,7 +88,7 @@ export default [{
         path: path.resolve(__dirname, 'dist')
     },
     resolve: {
-        extensions: ['.js', '.json'],
+        extensions: ['.js', '.jsx', '.json'],
     },
     devtool: 'eval',
     module: {
@@ -81,7 +96,12 @@ export default [{
             test: /\.js$/,
             loader: 'babel-loader',
             exclude: /node_modules/,
-        }, , {
+        }, {
+            test: /\.jsx$/,
+            loader: 'babel-loader',
+            exclude: /node_modules/,
+        },
+            , {
             test: /\.css$/,
             exclude: /node_modules/,
             use: ['style-loader', 'css-loader']

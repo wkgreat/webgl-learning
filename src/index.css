@@ -5,21 +5,43 @@ body {
     border: none;
 }
 
-#root-div {}
+#root-div {
+    height: 100%;
+    width: 100%;
+    color: white;
+    background-color: black;
+    display: flex;
+}
+
+.DemoListDiv {
+    box-sizing: border-box;
+    height: 100%;
+    width: 10%;
+    left: 0px;
+    min-width: 250px;
+}
+
+.DemoFrameDiv {
+    flex: 1;
+    box-sizing: border-box;
+    height: 100%;
+    border-width: 1px;
+    border-color: rgb(180, 19, 19);
+}
+
+#demo-frame {
+    box-sizing: border-box;
+    height: 100%;
+    width: 100%;
+    border-width: 1px;
+    border-color: rgb(180, 19, 19);
+}
 
 #option-div {
     height: 8%;
     width: 100%;
     border: none;
     background-color: black;
-}
-
-#demo-frame {
-    box-sizing: border-box;
-    height: 92%;
-    width: 100%;
-    border-width: 1px;
-    border-color: rgb(180, 19, 19);
 }
 
 .demo-canvas {
