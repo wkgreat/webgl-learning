@@ -1,0 +1,52 @@
+<html>
+
+<head><script defer src="webgl-demo13.js"></script></head>
+
+<body>
+    <div id="describe-div">
+        光照</br>
+        Blinn-Phong模型
+    </div>
+    <div id="helper">
+        <table>
+            <tr>
+                <th>Light Position X:</th>
+                <th><input id="lgt-pos-x" type="range" min="-100" max="100" value="50"></th>
+            </tr>
+            <tr>
+                <th>Light Position Y:</th>
+                <th><input id="lgt-pos-y" type="range" min="-100" max="100" value="50"></th>
+            </tr>
+            <tr>
+                <th>Light Position Z:</th>
+                <th><input id="lgt-pos-z" type="range" min="-100" max="100" value="50"></th>
+
+            </tr>
+            <tr>
+                <th>shininess:</th>
+                <th><input id="material-shininess" type="range" min="0" max="100" value="50"></th>
+            </tr>
+            <tr>
+                <th>ambient: </th>
+                <th><input id="material-ambient" type="color"></th>
+            </tr>
+            <tr>
+                <th>diffuse: </th>
+                <th><input id="material-diffuse" type="color"></th>
+            </tr>
+            <tr>
+                <th>specular: </th>
+                <th><input id="material-specular" type="color"></th>
+            </tr>
+            <tr>
+                <th>emission: </th>
+                <th><input id="material-emission" type="color"></th>
+            </tr>
+        </table>
+
+    </div>
+    <canvas id="demo13-canvas" class="demo-canvas"></canvas>
+
+</body>
+
+</html>
