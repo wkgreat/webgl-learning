@@ -42,29 +42,43 @@ async function main() {
         返回 GPUShaderModule 对象
     */
     const module = device.createShaderModule({
-        label: "triangle shaders",
+        label: 'our hardcoded rgb triangle shaders',
         code: /* wgsl */ `
-            @vertex fn vs(
-                @builtin(vertex_index) vertexIndex : u32
-            ) -> @builtin(position) vec4f {
-            
-                let pos = array(
-                    vec2f( 0.0, 0.5),
-                    vec2f(-0.5,-0.5),
-                    vec2f( 0.5,-0.5)
-                );
+      struct OurVertexShaderOutput {
+        @builtin(position) position: vec4f,
+        @location(0) color: vec4f,
+      };
+ 
+      @vertex fn vs(
+        @builtin(vertex_index) vertexIndex : u32
+      ) -> OurVertexShaderOutput {
+        let pos = array(
+          vec2f( 0.0,  0.5),  // top center
+          vec2f(-0.5, -0.5),  // bottom left
+          vec2f( 0.5, -0.5)   // bottom right
+        );
+        var color = array<vec4f, 3>(
+          vec4f(1, 0, 0, 1), // red
+          vec4f(0, 1, 0, 1), // green
+          vec4f(0, 0, 1, 1), // blue
+        );
+ 
+        var vsOutput: OurVertexShaderOutput;
+        vsOutput.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+        vsOutput.color = color[vertexIndex];
+        return vsOutput;
+      }
 
-                return vec4f(pos[vertexIndex], 0.0, 1.0);
-            
-            }
 
-            /*
-                @location(0) means first render target，we can set canvas texture as first render target later
-            */
-            @fragment fn fs() -> @location(0) vec4f {
-                return vec4f(1.0, 0.0, 0.0, 1.0);
-            }
-        `
+      //@fragment fn fs(fsInput: OurVertexShaderOutput) -> @location(0) vec4f {
+      //  return fsInput.color;
+      //}
+      // 或
+      @fragment fn fs(@location(0) color: vec4f) -> @location(0) vec4f {
+        return color;
+      }
+      
+    `,
     });
 
     /*

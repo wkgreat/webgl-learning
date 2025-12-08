@@ -100,8 +100,16 @@ const demos = {
         }, {
             "name": "demo2",
             "describe": "执行计算"
+        }, {
+            "name": "demo3",
+            "describe": "使用变量绘制三角形(RGB三角形)"
+        }, {
+            "name": "demo4",
+            "describe": "使用变量绘制三角形(棋盘三角形)"
         }
     ]
 }
+
+export const defaultDemo = "./webgpu-demo3.html"
 
 export default demos;

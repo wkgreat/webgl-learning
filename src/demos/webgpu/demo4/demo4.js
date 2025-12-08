@@ -41,30 +41,43 @@ async function main() {
         加载、编译和验证 WebGPU 着色器代码 (WGSL)
         返回 GPUShaderModule 对象
     */
-    const module = device.createShaderModule({
-        label: "triangle shaders",
+    const vsModule = device.createShaderModule({
+        label: 'our hardcoded rgb triangle vertex shaders',
         code: /* wgsl */ `
-            @vertex fn vs(
-                @builtin(vertex_index) vertexIndex : u32
-            ) -> @builtin(position) vec4f {
-            
-                let pos = array(
-                    vec2f( 0.0, 0.5),
-                    vec2f(-0.5,-0.5),
-                    vec2f( 0.5,-0.5)
-                );
+      struct OurVertexShaderOutput {
+        @builtin(position) position: vec4f
+      };
+ 
+      @vertex fn vs(
+        @builtin(vertex_index) vertexIndex : u32
+      ) -> OurVertexShaderOutput {
+        let pos = array(
+          vec2f( 0.0,  0.5),  // top center
+          vec2f(-0.5, -0.5),  // bottom left
+          vec2f( 0.5, -0.5)   // bottom right
+        );
+ 
+        var vsOutput: OurVertexShaderOutput;
+        vsOutput.position = vec4f(pos[vertexIndex], 0.0, 1.0);
+        return vsOutput;
+      }
+    `,
+    });
 
-                return vec4f(pos[vertexIndex], 0.0, 1.0);
-            
-            }
+    const fsModule = device.createShaderModule({
+        label: 'our hardcoded rgb triangle fragment shaders',
+        code: /* wgsl */ `
 
-            /*
-                @location(0) means first render target，we can set canvas texture as first render target later
-            */
-            @fragment fn fs() -> @location(0) vec4f {
-                return vec4f(1.0, 0.0, 0.0, 1.0);
-            }
-        `
+      @fragment fn fs(@builtin(position) pixelPosition: vec4f) -> @location(0) vec4f {
+
+        let red = vec4f(1, 0, 0, 1);
+        let cyan = vec4f(0, 1, 1, 1);
+        let grid = vec2u(pixelPosition.xy) / 8;
+        let checker = (grid.x + grid.y) % 2 == 1;
+
+        return select(red, cyan, checker); // 三元操作符
+      }
+    `,
     });
 
     /*
@@ -75,11 +88,11 @@ async function main() {
         layout: 'auto', //derive the layout of data from the shaders
         vertex: {
             //entryPoint: 'vs', // 如果shader里面只有一个vertex，这个可以省略
-            module
+            module: vsModule
         },
         fragment: {
             //entryPoint: 'fs', // 如果shader里面只有一个fragment，这个可以省略
-            module,
+            module: fsModule,
             targets: [{ format: presentationFormat }]
         }
     })

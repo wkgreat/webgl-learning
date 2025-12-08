@@ -1,28 +1,5 @@
 import './styles.css'
 
-let width = 1000;
-let height = 500;
-
-/**
- * @returns {HTMLCanvasElement|null}
-*/
-function getCanvas() {
-    const canvas = document.getElementById("webgpu-canvas");
-    if (canvas !== null) {
-        canvas.height = canvas.clientHeight;
-        canvas.width = canvas.clientWidth;
-        height = canvas.height;
-        width = canvas.width;
-        window.addEventListener('resize', () => {
-            canvas.height = canvas.clientHeight;
-            canvas.width = canvas.clientWidth;
-            height = canvas.height;
-            width = canvas.width;
-        })
-    }
-    return canvas;
-}
-
 async function main() {
 
     /*
@@ -43,7 +20,7 @@ async function main() {
         console.log('WebGPU get device success.');
     }
 
-    const canvas = getCanvas();
+    const canvas = document.getElementById("webgpu-canvas");
 
     const context = canvas.getContext('webgpu');
 
@@ -118,6 +95,7 @@ async function main() {
                 clearValue: [0.3, 0.3, 0.3, 1.0],
                 loadOp: 'clear',
                 storeOp: 'store'
+                //view 一会儿会设置为canvas的view
             }
         ]
     }
@@ -154,7 +132,18 @@ async function main() {
         device.queue.submit([commandBuffer]);
     }
 
-    render();
+    const observer = new ResizeObserver(entries => {
+        for (const entry of entries) {
+            console.log(entry);
+            const canvas = entry.target;
+            const width = entry.contentBoxSize[0].inlineSize;
+            const height = entry.contentBoxSize[0].blockSize;
+            canvas.width = Math.max(1, Math.min(width, device.limits.maxTextureDimension2D));
+            canvas.height = Math.max(1, Math.min(height, device.limits.maxTextureDimension2D));
+        }
+        render();
+    });
+    observer.observe(canvas);
 }
 
 main();

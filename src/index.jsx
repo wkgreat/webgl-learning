@@ -1,8 +1,7 @@
 import ReactDOM from 'react-dom/client';
 import { DemoList } from './component/DemoList';
 import './index.css';
-
-const defaultDemo = "./webgpu-demo2.html"
+import { defaultDemo } from './demolist';
 
 function App() {
     return <>
