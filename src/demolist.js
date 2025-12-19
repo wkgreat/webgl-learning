@@ -106,10 +106,41 @@ const demos = {
         }, {
             "name": "demo4",
             "describe": "使用变量绘制三角形(棋盘三角形)"
+        }, {
+            "name": "demo5",
+            "describe": "Uniforms"
+        }, {
+            "name": "demo6",
+            "describe": "Storage Buffer"
+        }, {
+            "name": "demo7",
+            "describe": "Vertex Buffer"
+        }, {
+            "name": "demo8",
+            "describe": "Index Buffers"
+        }, {
+            "name": "demo9",
+            "describe": "Texture"
+        }, {
+            "name": "demo10",
+            "describe": "图片Texture"
+        }, {
+            "name": "demo11",
+            "describe": "Texture MipMap on GPU"
+        }, {
+            "name": "demo12",
+            "describe": "Cube"
+        }, {
+            "name": "demo13",
+            "describe": "Cubemaps"
+        }, {
+            "name": "demo14",
+            "describe": "storage texture"
         }
     ]
+
 }
 
-export const defaultDemo = "./webgpu-demo3.html"
+export const defaultDemo = "./webgpu-demo14.html"
 
 export default demos;

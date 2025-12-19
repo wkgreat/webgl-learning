@@ -1,0 +1,48 @@
+{
+    "compilerOptions": {
+        /* 基本选项 */
+        "target": "es2020", /* 目标代码版本 (例如：es5, es2020)。ES2020 提供了更好的 Tree Shaking 和现代特性。 */
+        "module": "esnext", /* 模块系统 (例如：commonjs, esnext)。使用 esnext 以便 Webpack 或 Rollup 更好地进行模块优化。 */
+        "lib": [
+            "es2020",
+            "dom",
+            "dom.iterable"
+        ], /* 包含在编译中的库文件。通常需要 'dom' 用于浏览器环境。 */
+        "jsx": "react-jsx", /* 如何处理 JSX/TSX。如果是 React 项目，推荐使用 'react-jsx' 或 'react'。 */
+        "moduleResolution": "node", /* 模块解析策略。使用 'node' 以模仿 Node.js 的解析逻辑。 */
+        "allowJs": true, /* 允许编译 JavaScript 文件。 */
+        "sourceMap": true, /* 生成 Source Map 文件。 */
+        "outDir": "./dist", /* 输出目录，通常 Webpack 会处理最终输出，但这个选项对 IDE 很有用。 */
+        "esModuleInterop": true, /* 允许从 CommonJS 模块中默认导入 (import X from "mod")。 */
+        "forceConsistentCasingInFileNames": true, /* 强制文件名大小写一致。 */
+        /* 严格性检查选项 */
+        "strict": true, /* 启用所有严格类型检查选项 (下面的选项都会被启用)。 */
+        "noImplicitAny": true, /* 在表达式和声明上有隐式的 any 类型时报错。 */
+        "strictNullChecks": true, /* 启用严格的 null 和 undefined 检查。 */
+        "strictFunctionTypes": true, /* 启用严格的函数类型检查。 */
+        "strictBindCallApply": true, /* 启用严格的 bind、call 和 apply 方法检查。 */
+        "strictPropertyInitialization": true, /* 检查类的非空属性是否在构造函数中初始化。 */
+        "noImplicitThis": true, /* 在 this 表达式上有隐式的 any 类型时报错。 */
+        "useUnknownInCatchVariables": true, /* 捕获变量默认类型为 unknown 而不是 any。 */
+        "alwaysStrict": true, /* 以严格模式解析并在每个输出文件顶部注入 "use strict"。 */
+        /* 附加检查 */
+        // "noUnusedLocals": true, /* 报告未使用的局部变量。 */
+        // "noUnusedParameters": true, /* 报告未使用的参数。 */
+        "noFallthroughCasesInSwitch": true, /* 检查 switch 语句中的穿透情况。 */
+        "noImplicitReturns": true, /* 检查函数中是否有遗漏的返回语句。 */
+        /* 路径解析选项 */
+        "baseUrl": "./", /* 用于解析非相对模块名的基准目录。 */
+        "types": [
+            "@webgpu/types"
+        ]
+    },
+    /* 包含和排除文件 */
+    "include": [
+        "src/**/*", /* 包含 src 目录下的所有文件 */
+        "types/**/*" /* 包含自定义类型定义文件 (如 .d.ts) */
+    ],
+    "exclude": [
+        "node_modules", /* 排除 node_modules 目录 */
+        "dist" /* 排除构建输出目录 */
+    ]
+}

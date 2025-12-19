@@ -60,7 +60,7 @@ const webpackPlugins = [
 for (const demo of webglDemos) {
     const gltype = "webgl";
     const entryName = `${gltype}-${demo.name}`
-    webpackEntry[entryName] = `./src/demos/${gltype}/${demo.name}/${demo.name}.js`;
+    webpackEntry[entryName] = `./src/demos/${gltype}/${demo.name}/${demo.name}`;
     webpackPlugins.push(new HtmlWebpackPlugin({
         template: `src/demos/${gltype}/${demo.name}/${demo.name}.html`,
         filename: `${gltype}-${demo.name}.html`,
@@ -71,7 +71,7 @@ for (const demo of webglDemos) {
 for (const demo of webgpuDemos) {
     const gltype = "webgpu";
     const entryName = `${gltype}-${demo.name}`
-    webpackEntry[entryName] = `./src/demos/${gltype}/${demo.name}/${demo.name}.js`;
+    webpackEntry[entryName] = `./src/demos/${gltype}/${demo.name}/${demo.name}`;
     webpackPlugins.push(new HtmlWebpackPlugin({
         template: `src/demos/${gltype}/${demo.name}/${demo.name}.html`,
         filename: `${gltype}-${demo.name}.html`,
@@ -88,7 +88,7 @@ export default [{
         path: path.resolve(__dirname, 'dist')
     },
     resolve: {
-        extensions: ['.js', '.jsx', '.json'],
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     },
     devtool: 'eval',
     module: {
@@ -101,7 +101,17 @@ export default [{
             loader: 'babel-loader',
             exclude: /node_modules/,
         },
-            , {
+        {
+            test: /\.ts$/,
+            loader: 'ts-loader',
+            exclude: /node_modules/,
+        },
+        {
+            test: /\.tsx$/,
+            loader: 'ts-loader',
+            exclude: /node_modules/,
+        },
+        {
             test: /\.css$/,
             exclude: /node_modules/,
             use: ['style-loader', 'css-loader']
