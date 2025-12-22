@@ -136,11 +136,14 @@ const demos = {
         }, {
             "name": "demo14",
             "describe": "storage texture"
+        }, {
+            "name": "demo15",
+            "describe": "环境贴图"
         }
     ]
 
 }
 
-export const defaultDemo = "./webgpu-demo14.html"
+export const defaultDemo = "./webgpu-demo15.html"
 
 export default demos;
