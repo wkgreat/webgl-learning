@@ -1,0 +1,21 @@
+@import "../../demo.css";
+
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+#demo-div {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+.demo-webgpu-canvas {
+    height: 40%;
+    width: 40%;
+}

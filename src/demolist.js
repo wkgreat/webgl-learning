@@ -139,11 +139,14 @@ const demos = {
         }, {
             "name": "demo15",
             "describe": "环境贴图"
+        }, {
+            "name": "demo16",
+            "describe": "计算着色器，直方图统计"
         }
     ]
 
 }
 
-export const defaultDemo = "./webgpu-demo15.html"
+export const defaultDemo = "./webgpu-demo16.html"
 
 export default demos;
