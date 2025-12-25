@@ -41,6 +41,7 @@ input {
     line-height: 1;
     color: var(--mauve-11);
     user-select: none;
+    border-bottom: 2px solid var(--violet-11);
 }
 
 .TabsTrigger:first-child {}
@@ -53,7 +54,10 @@ input {
 
 .TabsTrigger[data-state="active"] {
     color: var(--violet-11);
-    border: 2px solid var(--violet-11);
+    border-top: 2px solid var(--violet-11);
+    border-left: 2px solid var(--violet-11);
+    border-right: 2px solid var(--violet-11);
+    border-bottom: 0px;
 }
 
 .TabsTrigger:focus {}
@@ -70,7 +74,9 @@ input {
     height: 100%;
     width: 100%;
     box-sizing: border-box;
-    border: 1px solid var(--violet-11);
+    border-left: 2px solid var(--violet-11);
+    border-right: 2px solid var(--violet-11);
+    border-bottom: 2px solid var(--violet-11);
     overflow: hidden;
     background-color: black;
 }
@@ -114,42 +120,17 @@ input {
 
 .DemoOption {
     box-sizing: border-box;
+    border: 1px solid #666;
+    padding: 5px;
+}
+
+.DemoOption:hover {
+    box-sizing: border-box;
     border-bottom: 1px solid #666;
+    background-color: var(--violet-11);
 }
-
-.DemoOptionHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.DemoOptionName {}
 
 .DemoOptionDescribe {
     font-size: smaller;
     color: rgba(200, 200, 200, 1);
-}
-
-.DemoLoadButton {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    padding: 0 15px;
-    font-size: 15px;
-    line-height: 1;
-    font-weight: 500;
-    height: 20px;
-
-    background-color: var(--violet-11);
-    color: white;
-}
-
-.DemoLoadButton:hover {
-    background-color: var(--violet-8);
-    ;
-}
-
-.DemoLoadButton:focus {
-    box-shadow: 0 0 0 2px var(--violet-8);
 }

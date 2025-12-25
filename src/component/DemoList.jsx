@@ -9,20 +9,16 @@ const Content = (props) => {
     const demos = props.demos;
 
     return (
-        <div style={{ lineHeight: '30px' }}>
+        <>
             {demos.map((d) => (
-                <div className="DemoOption" key={d.name}>
-                    <div className='DemoOptionHeader'>
-                        <div className='DemoOptionName'>{d.name}</div>
-                        <div><button className='DemoLoadButton' onClick={() => {
-                            const frame = document.getElementById('demo-frame');
-                            frame.setAttribute('src', `./${gltype}-${d.name}.html`);
-                        }}>Show</button></div>
-                    </div>
-                    <div className='DemoOptionDescribe'>{d.describe}</div>
+                <div className="DemoOption" key={d.name} onClick={() => {
+                    const frame = document.getElementById('demo-frame');
+                    frame.setAttribute('src', `./${gltype}-${d.name}.html`);
+                }}>
+                    <div className='DemoOptionDescribe'>{d.name}: {d.describe}</div>
                 </div>
             ))}
-        </div>
+        </>
     );
 };
 
