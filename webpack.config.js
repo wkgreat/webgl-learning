@@ -113,7 +113,6 @@ export default [{
         },
         {
             test: /\.css$/,
-            exclude: /node_modules/,
             use: ['style-loader', 'css-loader']
         }, {
             test: /\.(png|gif|jpg|jpeg|svg|xml)$/,

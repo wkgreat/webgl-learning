@@ -2,6 +2,7 @@ import * as ScrollArea from '@radix-ui/react-scroll-area';
 import demos from '../demolist';
 import './styles.css';
 import * as Tabs from '@radix-ui/react-tabs';
+import { Flex } from '@radix-ui/themes';
 
 const Content = (props) => {
 
@@ -33,10 +34,14 @@ export const DemoList = () => (
             </Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content className="TabsContent" value="tab1">
-            <SingleDemoList demos={demos.webglDemos} gltype="webgl"></SingleDemoList>
+            <Flex direction="column" style={{ height: "95vh" }}>
+                <SingleDemoList demos={demos.webglDemos} gltype="webgl"></SingleDemoList>
+            </Flex>
         </Tabs.Content>
         <Tabs.Content className="TabsContent" value="tab2">
-            <SingleDemoList demos={demos.webgpuDemos} gltype="webgpu"></SingleDemoList>
+            <Flex direction="column" style={{ height: "95vh" }}>
+                <SingleDemoList demos={demos.webgpuDemos} gltype="webgpu"></SingleDemoList>
+            </Flex>
         </Tabs.Content>
     </Tabs.Root>
 
